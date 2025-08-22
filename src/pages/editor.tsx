@@ -8,6 +8,8 @@ import { useState, useEffect } from 'react';
 import { Resume } from 'src/core/containers/Resume';
 import { Sidebar } from 'src/core/containers/Sidebar';
 import { LeftNav } from 'src/core/containers/LeftNav';
+import { AIChat } from '../components/AIChat';
+
 import { FlexHC } from 'src/styles/styles';
 import ProtectedRoute from '../components/ProtectedRoute';
 
@@ -201,51 +203,7 @@ const StaticBorder = styled.div`
   box-sizing: border-box;
 `;
 
-//
-// ✍️ Fixed AI Prompt Input
-//
-const FixedInputContainer = styled.div`
-  position: fixed;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 500px;
-  background: #1a1a1a;
-  padding: 16px 20px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-  border-radius: 16px;
-  z-index: 1000;
-`;
 
-const Input = styled.input`
-  width: 100%;
-  padding: 12px 16px;
-  font-size: 16px;
-  background: #262626;
-  color: #f0f0f0;
-  border: 1px solid #444;
-  border-radius: 12px;
-  outline: none;
-  transition: border 0.3s ease, background 0.3s ease;
-
-  &::placeholder {
-    color: #888;
-  }
-
-  &:focus {
-    border-color: #5a9eff;
-    background: #1f1f1f;
-  }
-`;
-
-const ILCReference = styled.div`
-  margin-top: 8px;
-  font-size: 12px;
-  color: #666;
-  text-align: center;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-`;
 
 //
 // 🧱 Main Editor Page
@@ -343,12 +301,10 @@ const Editor: NextPage = () => {
 
         <LeftNav />
         <Resume />
+        <AIChat />
         <Sidebar />
 
-        <FixedInputContainer>
-          <Input type="text" placeholder="Ask AI to improve your resume..." />
-          <ILCReference>Powered by ILC</ILCReference>
-        </FixedInputContainer>
+
       </FlexHC>
     </ProtectedRoute>
   );
