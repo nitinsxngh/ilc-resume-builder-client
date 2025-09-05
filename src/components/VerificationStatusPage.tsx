@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Card, Button, Timeline, Alert, Statistic, Row, Col, Divider, Typography, Space } from 'antd';
+
+const { Item: TimelineItem } = Timeline;
 import { 
   CheckCircleOutlined, 
   ClockCircleOutlined, 
@@ -142,11 +144,11 @@ export const VerificationStatusPage: React.FC<VerificationStatusPageProps> = ({ 
   };
 
   const getVerificationTimeline = () => {
-    const timeline = [];
+    const timeline: any[] = [];
     
     if (verificationState.verificationDate) {
       timeline.push({
-        color: 'green',
+        color: 'green' as const,
         children: (
           <div>
             <Text strong style={{ color: '#fff' }}>Verification Completed</Text>
@@ -161,7 +163,7 @@ export const VerificationStatusPage: React.FC<VerificationStatusPageProps> = ({ 
     }
     
     timeline.push({
-      color: 'blue',
+      color: 'blue' as const,
       children: (
         <div>
           <Text strong style={{ color: '#fff' }}>Profile Created</Text>
@@ -277,8 +279,8 @@ export const VerificationStatusPage: React.FC<VerificationStatusPageProps> = ({ 
                 <div className="detail-content">
                   <VerificationBadge
                     status={verificationState.isVerified ? 'verified' : 'unverified'}
-                    verifiedBy={verificationState.verifiedBy}
-                    verificationDate={verificationState.verificationDate}
+                    verifiedBy={verificationState.verifiedBy || undefined}
+                    verificationDate={verificationState.verificationDate || undefined}
                     verifiedFields={verificationState.verifiedFields}
                     confidence={verificationState.confidence}
                     onVerify={handleVerifyClick}
@@ -330,10 +332,13 @@ export const VerificationStatusPage: React.FC<VerificationStatusPageProps> = ({ 
 
         <Col xs={24} lg={12}>
           <Card title="Verification Timeline" className="verification-card">
-            <Timeline
-              items={getVerificationTimeline()}
-              className="timeline-item"
-            />
+            <Timeline className="timeline-item">
+              {getVerificationTimeline().map((item, index) => (
+                <TimelineItem key={index} color={item.color}>
+                  {item.children}
+                </TimelineItem>
+              ))}
+            </Timeline>
           </Card>
         </Col>
       </Row>

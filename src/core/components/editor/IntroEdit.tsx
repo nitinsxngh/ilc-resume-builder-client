@@ -147,8 +147,8 @@ export function IntroEdit({ METADATA, state, update }: any) {
           <VerificationTitle>Identity Verification</VerificationTitle>
           <VerificationBadge
             status={getVerificationStatus()}
-            verifiedBy={verificationState.verifiedBy}
-            verificationDate={verificationState.verificationDate}
+            verifiedBy={verificationState.verifiedBy || undefined}
+            verificationDate={verificationState.verificationDate || undefined}
             verifiedFields={verificationState.verifiedFields}
             confidence={verificationState.confidence}
             onVerify={handleVerifyClick}
@@ -177,7 +177,6 @@ export function IntroEdit({ METADATA, state, update }: any) {
         <div style={{ marginTop: '16px' }}>
           <VerificationButton 
             onClick={handleVerifyClick}
-            type="button"
           >
             {verificationState.isVerified ? 'Re-verify Information' : 'Verify Information'}
           </VerificationButton>

@@ -347,6 +347,3 @@ class VerificationService {
 
 // Export singleton instance
 export const verificationService = new VerificationService();
-
-// Export types for use in other components
-export type { VerificationRequest, VerificationResponse };

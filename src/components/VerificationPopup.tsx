@@ -955,7 +955,7 @@ export const VerificationPopup: React.FC<VerificationPopupProps> = ({
       
       <Modal
         title="Verify Your Information"
-        open={false} // Disable Antd Modal for now
+        visible={false} // Disable Antd Modal for now
         onCancel={onClose}
         width={600}
         className="verification-popup"
