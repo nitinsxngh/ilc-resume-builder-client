@@ -230,19 +230,35 @@ const QuickActions = styled.div`
   margin-bottom: 16px;
 `;
 
-const QuickAction = styled.button`
+const QuickAction = styled.button<{ isOptimize?: boolean }>`
   padding: 8px 16px;
-  background: rgba(164, 124, 56, 0.1);
-  border: 1px solid rgba(164, 124, 56, 0.3);
+  background: ${props => props.isOptimize 
+    ? 'linear-gradient(135deg, #a47c38 0%, #c49c58 100%)' 
+    : 'rgba(164, 124, 56, 0.1)'};
+  border: 1px solid ${props => props.isOptimize 
+    ? 'transparent' 
+    : 'rgba(164, 124, 56, 0.3)'};
   border-radius: 20px;
-  color: #a47c38;
+  color: ${props => props.isOptimize ? 'white' : '#a47c38'};
   font-size: 12px;
+  font-weight: ${props => props.isOptimize ? '600' : '400'};
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: ${props => props.isOptimize 
+    ? '0 4px 15px rgba(164, 124, 56, 0.3)' 
+    : 'none'};
 
   &:hover {
-    background: rgba(164, 124, 56, 0.2);
-    border-color: rgba(164, 124, 56, 0.5);
+    background: ${props => props.isOptimize 
+      ? 'linear-gradient(135deg, #c49c58 0%, #a47c38 100%)' 
+      : 'rgba(164, 124, 56, 0.2)'};
+    border-color: ${props => props.isOptimize 
+      ? 'transparent' 
+      : 'rgba(164, 124, 56, 0.5)'};
+    transform: ${props => props.isOptimize ? 'translateY(-2px)' : 'none'};
+    box-shadow: ${props => props.isOptimize 
+      ? '0 6px 20px rgba(164, 124, 56, 0.4)' 
+      : 'none'};
   }
 `;
 
@@ -340,11 +356,16 @@ interface ChatMessage {
 }
 
 const quickActions = [
-  'Generate Summary',
-  'Suggest Skills',
-  'Write Achievements',
-  'Resume Tips',
-  'Auto Fill Resume'
+  '🚀 Optimize my entire resume',
+  'My name is Alex',
+  'I\'m a passionate developer...',
+  'I know React',
+  'Add Python to my skills',
+  'I\'m a Software Engineer',
+  'I have 5 years experience',
+  'Help me improve my summary',
+  'Generate a professional summary',
+  'Show me my resume'
 ];
 
 export const AIChat: React.FC = () => {
@@ -353,7 +374,7 @@ export const AIChat: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
-      text: 'Hello! I\'m your AI resume assistant. I can help you improve your resume, suggest skills, write achievements, and provide professional advice. How can I help you today?',
+      text: '👋 Hi there! I\'m your AI resume assistant, and I\'m here to help you create an amazing resume!\n\nI can help you with:\n\n✨ **Building your resume** - Just tell me about yourself!\n🎯 **Improving content** - I\'ll make your text more impactful\n🚀 **Adding skills** - I know what recruiters are looking for\n💡 **Resume tips** - I\'ve got insider knowledge to share\n\n**Try saying things like:**\n• "My name is Sarah"\n• "I\'m a Software Engineer"\n• "I know React and Python"\n• "Help me improve my summary"\n\nOr click one of the quick actions below to get started! 🎉',
       isUser: false,
       timestamp: new Date()
     }
@@ -372,6 +393,11 @@ export const AIChat: React.FC = () => {
     getResumeAdvice,
     autoFillResume,
     customPrompt,
+    updateFormField,
+    getCurrentContext,
+    addWorkExperience,
+    addNewSkill,
+    optimizeResume,
     currentSummary,
     currentSkills,
     currentExperience
@@ -410,39 +436,129 @@ export const AIChat: React.FC = () => {
     try {
       let response = '';
       
-      if (messageText.toLowerCase().includes('improve') && messageText.toLowerCase().includes('summary')) {
+      // Check if it's a form field update command first
+      const lowerMessage = messageText.toLowerCase();
+      const isFormUpdate = lowerMessage.includes('change') || 
+                          lowerMessage.includes('update') || 
+                          lowerMessage.includes('set') ||
+                          lowerMessage.includes('add') ||
+                          lowerMessage.includes('phone') ||
+                          lowerMessage.includes('email') ||
+                          lowerMessage.includes('location') ||
+                          lowerMessage.includes('summary') ||
+                          lowerMessage.includes('about me') ||
+                          lowerMessage.includes('objective') ||
+                          lowerMessage.includes('career objective') ||
+                          lowerMessage.includes('technical expertise') ||
+                          lowerMessage.includes('skills exposure') ||
+                          lowerMessage.includes('methodology approach') ||
+                          lowerMessage.includes('tools') ||
+                          lowerMessage.includes('skill') ||
+                          lowerMessage.includes('role') ||
+                          lowerMessage.includes('title') ||
+                          lowerMessage.includes('position') ||
+                          lowerMessage.includes('relevant experience') ||
+                          lowerMessage.includes('total experience') ||
+                          lowerMessage.includes('experience') ||
+                          lowerMessage.includes('involvement') ||
+                          lowerMessage.includes('achievement') ||
+                          lowerMessage.includes('name') ||
+                          // Check for simple name mentions (single word that could be a name)
+                          (messageText.trim().split(' ').length === 1 && /^[A-Za-z]+$/.test(messageText.trim()));
+      
+      if (isFormUpdate) {
+        response = await updateFormField(messageText);
+      } else if (messageText.toLowerCase().includes('improve') && messageText.toLowerCase().includes('summary')) {
         if (currentSummary) {
           response = await improveText(currentSummary, 'summary', 'summary');
-          response = '✅ Summary improved and updated in your resume!';
+          response = '✅ Great! I\'ve improved your summary and updated it in your resume. The new version uses stronger action verbs and more impactful language.';
         } else {
-          response = 'Please add a summary first, then I can help improve it.';
+          response = 'I\'d be happy to help improve your summary! First, could you add a summary to your resume? You can do this by saying something like "My summary is [your summary text]" or by using the form fields.';
+        }
+      } else if (messageText.toLowerCase().includes('improve') && messageText.toLowerCase().includes('about me')) {
+        if (currentSummary) {
+          response = await improveText(currentSummary, 'about me section', 'summary');
+          response = '✅ Perfect! I\'ve enhanced your about me section with more professional language and stronger impact statements.';
+        } else {
+          response = 'I\'d love to help improve your about me section! Could you first add some content? You can say something like "My about me is [your text]" and I\'ll make it shine!';
+        }
+      } else if (messageText.toLowerCase().includes('optimize') && messageText.toLowerCase().includes('about me')) {
+        if (currentSummary) {
+          response = await improveText(currentSummary, 'about me section', 'summary');
+          response = '✅ Excellent! I\'ve optimized your about me section to be more ATS-friendly and impactful.';
+        } else {
+          response = 'I\'d be happy to optimize your about me section! First, please add some content by saying something like "My about me is [your text]".';
         }
       } else if (messageText.toLowerCase().includes('suggest') && messageText.toLowerCase().includes('skill')) {
         const skills = await generateSkills('Software Developer', '3 years of experience', 'technologies');
-        response = `✅ Added ${skills.length} new skills to your resume! Check the Skills section.`;
+        response = `🎯 Great! I've added ${skills.length} relevant skills to your resume. These are based on current industry trends and should help make your resume more competitive. Check out the Skills section to see them!`;
       } else if (messageText.toLowerCase().includes('write') && messageText.toLowerCase().includes('achievement')) {
         if (currentExperience.length > 0) {
           const achievements = await generateAchievements('Software Developer', 'Project development', 0);
-          response = `✅ Added ${achievements.length} achievement statements to your first work experience entry!`;
+          response = `🚀 Fantastic! I've crafted ${achievements.length} compelling achievement statements for your work experience. These highlight your impact and results - exactly what recruiters love to see!`;
         } else {
-          response = 'Please add some work experience first, then I can help write achievements.';
+          response = 'I\'d love to help you write some impressive achievements! First, could you add some work experience to your resume? You can say something like "I worked at [Company] as [Role] doing [Description]".';
         }
       } else if (messageText.toLowerCase().includes('resume tip')) {
         response = await getResumeAdvice('general resume best practices');
       } else if (messageText.toLowerCase().includes('auto fill') || messageText.toLowerCase().includes('autofill')) {
         const result = await autoFillResume('Software Developer', 3, ['Web Application Development', 'API Integration']);
         response = result.message;
+      } else if (messageText.toLowerCase().includes('optimize') || messageText.toLowerCase().includes('optimization') || messageText.toLowerCase().includes('optimize resume')) {
+        const result = await optimizeResume(messageText);
+        response = `${result.message}\n\n📊 **Optimization Summary:**\n• Summary: ${result.details.summaryUpdated ? '✅ Updated' : '❌ Not updated'}\n• Skills: ${result.details.skillsAdded} added\n• Achievements: ${result.details.achievementsAdded} added\n• Involvements: ${result.details.involvementsAdded} added\n• Objective: ${result.details.objectiveUpdated ? '✅ Updated' : '❌ Not updated'}\n• Role: ${result.details.labelUpdated ? '✅ Updated' : '❌ Not updated'}\n\nYour resume is now optimized and ready to impress recruiters! 🚀`;
       } else if (messageText.toLowerCase().includes('generate summary')) {
         const summary = await generateSummary('Software Developer', '3 years of experience', ['JavaScript', 'React', 'Node.js']);
-        response = '✅ Professional summary generated and added to your resume!';
+        response = '✨ Perfect! I\'ve created a compelling professional summary that highlights your key strengths and experience. This will grab recruiters\' attention right from the start!';
+      } else if (messageText.toLowerCase().includes('show current context') || messageText.toLowerCase().includes('current context')) {
+        const context = getCurrentContext();
+        response = `📄 **Here's your current resume overview:**\n\n• **Name:** ${context.name}\n• **Email:** ${context.email}\n• **Phone:** ${context.phone}\n• **Location:** ${context.location}\n• **Summary:** ${context.summary}\n• **Skills:** ${context.skills || 'None'}\n• **Experience:** ${context.experience} positions\n• **Education:** ${context.education} degrees\n\n💡 **Quick tip:** You can update any field by simply telling me! For example:\n• "My name is Sarah"\n• "I'm a Senior Developer"\n• "Add React to my skills"\n• "I live in San Francisco"`;
+      } else if (messageText.toLowerCase().includes('add experience') || messageText.toLowerCase().includes('add work experience')) {
+        response = 'I\'d be happy to help you add work experience! Please tell me:\n\n• Company name\n• Your role/title\n• What you did there\n\nFor example: "I worked at Google as a Software Engineer developing web applications and leading a team of 5 developers."';
+      } else if (messageText.toLowerCase().includes('add skill') || messageText.toLowerCase().includes('add new skill')) {
+        // Parse skill addition command
+        const skillMatch = messageText.match(/add\s+(?:new\s+)?skill\s+(\w+)\s+to\s+(\w+)/i);
+        if (skillMatch) {
+          const skillName = skillMatch[1];
+          const skillType = skillMatch[2];
+          response = await addNewSkill(skillName, skillType);
+        } else {
+          // Try to extract skill name from simpler patterns
+          const simpleSkillMatch = messageText.match(/add\s+(?:skill\s+)?(\w+)/i);
+          if (simpleSkillMatch) {
+            const skillName = simpleSkillMatch[1];
+            response = await addNewSkill(skillName, 'technologies'); // Default to technologies
+          } else {
+            response = 'I\'d love to add a skill for you! You can say something like:\n\n• "Add React to frameworks"\n• "I know Python" (I\'ll categorize it automatically)\n• "Add JavaScript to languages"\n\nWhat skill would you like to add?';
+          }
+        }
       } else {
-        response = await customPrompt(messageText);
+        // Build conversation history for context
+        const recentMessages = messages.slice(-6).map(msg => 
+          `${msg.isUser ? 'User' : 'AI'}: ${msg.text}`
+        );
+        response = await customPrompt(messageText, recentMessages);
       }
 
       addMessage(response, false);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
-      addMessage(`❌ ${errorMessage}`, false);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      
+      // Provide more helpful error messages based on the error type
+      let friendlyErrorMessage = '';
+      if (errorMessage.includes('Rate limit')) {
+        friendlyErrorMessage = '⏰ Oops! I\'m getting a bit too many requests right now. Please wait a moment and try again. I\'ll be ready to help you in just a bit!';
+      } else if (errorMessage.includes('API authentication')) {
+        friendlyErrorMessage = '🔧 It looks like there\'s a configuration issue with my AI service. Please check your API settings, but I\'m still here to help with basic resume guidance!';
+      } else if (errorMessage.includes('Server error')) {
+        friendlyErrorMessage = '🛠️ I\'m experiencing some technical difficulties right now. Please try again in a few moments, or feel free to ask me something else!';
+      } else if (errorMessage.includes('Empty response')) {
+        friendlyErrorMessage = '🤔 I didn\'t quite understand that. Could you try rephrasing your question? I\'m here to help with resume building, skills, summaries, and more!';
+      } else {
+        friendlyErrorMessage = `😅 Oops! Something went wrong: ${errorMessage}\n\nDon\'t worry though - I\'m still here to help! Try asking me about resume tips, or tell me what you\'d like to update in your resume.`;
+      }
+      
+      addMessage(friendlyErrorMessage, false);
     }
   };
 
@@ -456,7 +572,7 @@ export const AIChat: React.FC = () => {
   if (!isVisible) {
     return (
       <ToggleButton onClick={() => setIsVisible(true)}>
-        🤖 AI Assistant
+        AI Assistant
       </ToggleButton>
     );
   }
@@ -465,7 +581,7 @@ export const AIChat: React.FC = () => {
     return (
       <ChatContainer style={{ height: '120px' }}>
         <ChatHeader>
-          <AIIcon>🤖</AIIcon>
+          <AIIcon>AI</AIIcon>
           <HeaderText>
             <h3>AI Resume Assistant</h3>
             <p>Click to expand</p>
@@ -484,7 +600,7 @@ export const AIChat: React.FC = () => {
           borderTop: '1px solid rgba(164, 124, 56, 0.1)'
         }}>
           <ExpandButton onClick={() => setIsExpanded(true)}>
-            🚀 Expand AI Chat
+            Expand AI Chat
           </ExpandButton>
           <div style={{
             textAlign: 'center',
@@ -503,7 +619,7 @@ export const AIChat: React.FC = () => {
   return (
     <ChatContainer>
       <ChatHeader>
-        <AIIcon>🤖</AIIcon>
+        <AIIcon>AI</AIIcon>
         <HeaderText>
           <h3>AI Resume Assistant</h3>
           <p>Powered by Gemini AI</p>
@@ -544,7 +660,11 @@ export const AIChat: React.FC = () => {
         
         <QuickActions>
           {quickActions.map((action, index) => (
-            <QuickAction key={index} onClick={() => handleQuickAction(action)}>
+            <QuickAction 
+              key={index} 
+              onClick={() => handleQuickAction(action)}
+              isOptimize={action.includes('🚀 Optimize')}
+            >
               {action}
             </QuickAction>
           ))}
@@ -553,7 +673,7 @@ export const AIChat: React.FC = () => {
         {messages.map((message) => (
           <Message key={message.id} isUser={message.isUser}>
             <Avatar isUser={message.isUser}>
-              {message.isUser ? '👤' : '🤖'}
+              {message.isUser ? 'U' : 'AI'}
             </Avatar>
             <MessageBubble isUser={message.isUser}>
               {message.text}
@@ -563,7 +683,7 @@ export const AIChat: React.FC = () => {
 
         {isLoading && (
           <Message isUser={false}>
-            <Avatar isUser={false}>🤖</Avatar>
+            <Avatar isUser={false}>AI</Avatar>
             <MessageBubble isUser={false}>
               <LoadingDots>
                 <Dot delay={0} />
