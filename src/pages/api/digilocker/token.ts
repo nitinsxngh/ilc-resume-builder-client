@@ -37,9 +37,25 @@ export default async function handler(
     const redirectUri = process.env.NEXT_PUBLIC_MERIPAHACHAN_REDIRECT_URI;
     const tokenUrl = process.env.MERIPAHACHAN_TOKEN_URL || 'https://digilocker.meripehchaan.gov.in/public/oauth2/1/token';
 
+    console.log('Token API - Environment check:', {
+      hasClientId: !!clientId,
+      hasClientSecret: !!clientSecret,
+      hasRedirectUri: !!redirectUri,
+      tokenUrl,
+      clientId: clientId || 'MISSING',
+      redirectUri: redirectUri || 'MISSING'
+    });
+
     if (!clientId || !redirectUri) {
-      console.error('MeriPahachan configuration missing:', { hasClientId: !!clientId, hasRedirectUri: !!redirectUri });
-      return res.status(500).json({ error: 'Server configuration error' });
+      console.error('MeriPahachan configuration missing:', { 
+        hasClientId: !!clientId, 
+        hasRedirectUri: !!redirectUri,
+        envKeys: Object.keys(process.env).filter(key => key.includes('MERIPAHACHAN') || key.includes('MERIPAHACHAN'))
+      });
+      return res.status(500).json({ 
+        error: 'Server configuration error',
+        details: `Missing: ${!clientId ? 'clientId ' : ''}${!redirectUri ? 'redirectUri' : ''}`
+      });
     }
 
     // Prepare token exchange request
