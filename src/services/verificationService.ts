@@ -95,6 +95,7 @@ class VerificationService {
       clientId: this.meriPahachanConfig.clientId,
       redirectUri: this.meriPahachanConfig.redirectUri,
       authUrl: this.meriPahachanConfig.authUrl,
+      scopes: this.meriPahachanConfig.scopes,
       hasScopes: this.meriPahachanConfig.scopes.length > 0
     });
     
