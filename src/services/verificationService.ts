@@ -557,7 +557,10 @@ class VerificationService {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
       console.error('Token exchange failed:', response.status, errorData);
-      throw new Error(errorData.error_description || errorData.error || `Token exchange failed: ${response.status}`);
+      const errorMessage = errorData.error_description 
+        ? `${errorData.error}: ${errorData.error_description}`
+        : errorData.error || `Token exchange failed: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     const tokenData = await response.json();
