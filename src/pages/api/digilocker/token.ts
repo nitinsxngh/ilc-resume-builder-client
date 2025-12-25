@@ -50,7 +50,7 @@ export default async function handler(
       console.error('MeriPahachan configuration missing:', { 
         hasClientId: !!clientId, 
         hasRedirectUri: !!redirectUri,
-        envKeys: Object.keys(process.env).filter(key => key.includes('MERIPAHACHAN') || key.includes('MERIPAHACHAN'))
+        envKeys: Object.keys(process.env).filter(key => key.includes('MERIPAHACHAN'))
       });
       return res.status(500).json({ 
         error: 'Server configuration error',
