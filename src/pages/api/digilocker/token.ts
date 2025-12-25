@@ -65,7 +65,7 @@ export default async function handler(
     params.append('client_id', clientId);
     params.append('redirect_uri', redirectUri);
     params.append('code_verifier', codeVerifier);
-    params.append('code_challenge_method', 'S256');
+    // Note: code_challenge_method is only for authorization request, not token exchange
 
     // Add client_secret if available (for confidential clients)
     if (clientSecret) {
@@ -77,7 +77,15 @@ export default async function handler(
       clientId,
       redirectUri,
       hasCodeVerifier: !!codeVerifier,
-      hasClientSecret: !!clientSecret
+      hasClientSecret: !!clientSecret,
+      grantType: 'authorization_code',
+      params: {
+        grant_type: 'authorization_code',
+        code: code.substring(0, 10) + '...',
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        code_verifier: codeVerifier ? '***' : 'missing'
+      }
     });
 
     // Exchange code for token (server-to-server, no CORS issues)
