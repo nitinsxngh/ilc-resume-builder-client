@@ -87,7 +87,9 @@ export default function DigiLockerCallbackPage() {
         }
 
         // Handle the callback
+        console.log('Processing callback with code and state:', { code: codeValue?.substring(0, 10) + '...', state: stateValue });
         const result = await verificationService.handleMeriPahachanCallback(codeValue, stateValue || '');
+        console.log('Callback result:', result);
 
         if (result.success && result.data) {
           setStatus('success');
@@ -105,8 +107,10 @@ export default function DigiLockerCallbackPage() {
           }, 2000);
         } else {
           setStatus('error');
-          setMessageText(result.error || result.message || 'Verification failed');
-          message.error(result.error || 'Verification failed');
+          const errorMsg = result.error || result.message || 'Verification failed';
+          setMessageText(errorMsg);
+          console.error('Verification failed:', errorMsg, result);
+          message.error(errorMsg);
           
           setTimeout(() => {
             router.push('/editor');

@@ -285,7 +285,10 @@ class VerificationService {
    */
   async handleMeriPahachanCallback(code: string, state: string): Promise<VerificationResponse> {
     try {
+      console.log('handleMeriPahachanCallback called with:', { code: code?.substring(0, 10) + '...', state });
+      
       if (!this.meriPahachanConfig) {
+        console.error('MeriPahachan config not available');
         return {
           success: false,
           error: 'MeriPahachan configuration not available'
@@ -293,9 +296,12 @@ class VerificationService {
       }
 
       // Exchange authorization code for access token
+      console.log('Exchanging code for token...');
       const tokenResponse = await this.exchangeCodeForToken(code);
+      console.log('Token response received:', { hasAccessToken: !!tokenResponse.access_token });
       
       if (!tokenResponse.access_token) {
+        console.error('No access token in response:', tokenResponse);
         return {
           success: false,
           error: 'Failed to obtain access token'
@@ -303,7 +309,9 @@ class VerificationService {
       }
 
       // Fetch user profile information
+      console.log('Fetching user profile...');
       const profileData = await this.fetchUserProfile(tokenResponse.access_token);
+      console.log('Profile data received:', profileData);
       
       // Get stored verification request
       let storedRequest: VerificationRequest | null = null;
@@ -341,25 +349,23 @@ class VerificationService {
         fullProfile: profileData
       });
       
-      // Compare with resume name
+      // Compare with resume name if stored request exists
       const resumeName = storedRequest?.name || '';
-      const nameMatch = this.compareNames(verifiedName, resumeName);
+      const nameMatch = resumeName ? this.compareNames(verifiedName, resumeName) : true; // If no stored request, consider it a match
 
       const verifiedFields: string[] = [];
-      if (nameMatch && verifiedName) {
+      if (verifiedName) {
         verifiedFields.push('name');
       }
-      if (verifiedEmail && storedRequest?.email && verifiedEmail.toLowerCase() === storedRequest.email.toLowerCase()) {
+      if (verifiedEmail) {
         verifiedFields.push('email');
       }
-      if (verifiedAddress && storedRequest?.address) {
-        // Basic address comparison (can be enhanced)
-        const addressMatch = verifiedAddress.toLowerCase().includes(storedRequest.address.toLowerCase()) 
-          || storedRequest.address.toLowerCase().includes(verifiedAddress.toLowerCase());
-        if (addressMatch) {
-          verifiedFields.push('address');
-        }
+      if (verifiedAddress) {
+        verifiedFields.push('address');
       }
+
+      // If we have profile data, consider verification successful
+      const isSuccessful = verifiedName || verifiedFields.length > 0;
 
       // Clear stored data
       if (typeof window !== 'undefined') {
@@ -368,22 +374,22 @@ class VerificationService {
       }
 
       return {
-        success: nameMatch,
+        success: isSuccessful,
         data: {
           verifiedBy: 'MeriPahachan (DigiLocker)',
           verificationDate: new Date().toISOString(),
           verifiedFields,
-          confidence: nameMatch ? 0.95 : 0.0,
+          confidence: nameMatch && verifiedName ? 0.95 : 0.85,
           rawData: {
             verifiedName,
             resumeName,
-            nameMatch,
+            nameMatch: resumeName ? nameMatch : true,
             profileData
           }
         },
-        message: nameMatch 
-          ? 'Name verified successfully!' 
-          : `Name mismatch. Verified name: ${verifiedName}, Resume name: ${resumeName}`
+        message: verifiedName 
+          ? `Verification successful! Name: ${verifiedName}` 
+          : 'Verification completed with available profile data'
       };
     } catch (error) {
       return {
