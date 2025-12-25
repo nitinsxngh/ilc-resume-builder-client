@@ -76,7 +76,7 @@ class VerificationService {
     
     // IMPORTANT: Redirect URI must EXACTLY match what's registered in MeriPehchaan dashboard
     // Default to production URL, but allow override via environment variable
-    const defaultRedirectUri = 'https://www.ilc.com/callback';
+    const defaultRedirectUri = 'https://resumebuilder.ilc.limited/digilocker/callback';
     const redirectUri = process.env.NEXT_PUBLIC_MERIPAHACHAN_REDIRECT_URI || defaultRedirectUri;
     
     this.meriPahachanConfig = {
@@ -103,7 +103,7 @@ class VerificationService {
     });
     
     // Warn if redirect URI might not match
-    if (typeof window !== 'undefined' && window.location.origin !== 'https://www.ilc.com' && !process.env.NEXT_PUBLIC_MERIPAHACHAN_REDIRECT_URI) {
+    if (typeof window !== 'undefined' && window.location.origin !== 'https://resumebuilder.ilc.limited' && !process.env.NEXT_PUBLIC_MERIPAHACHAN_REDIRECT_URI) {
       console.warn('⚠️ Redirect URI mismatch warning:');
       console.warn(`Current origin: ${window.location.origin}`);
       console.warn(`Using redirect URI: ${redirectUri}`);
