@@ -87,10 +87,9 @@ class VerificationService {
       tokenUrl: process.env.MERIPAHACHAN_TOKEN_URL || `${baseUrl}/token`,
       userinfoUrl: process.env.MERIPAHACHAN_USERINFO_URL || `${baseUrl}/userinfo`,
       scopes: [
-        'userdetails',
+        'openid',
         'email',
         'address',
-        'openid',
         'profile'
       ]
     };

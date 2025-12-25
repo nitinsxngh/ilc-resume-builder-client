@@ -37,16 +37,20 @@ export default function DigiLockerCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        const { code, state, error } = router.query;
+        const { code, state, error, error_description } = router.query;
         
         const codeValue = Array.isArray(code) ? code[0] : code;
         const stateValue = Array.isArray(state) ? state[0] : state;
         const errorValue = Array.isArray(error) ? error[0] : error;
+        const errorDescription = Array.isArray(error_description) ? error_description[0] : error_description;
 
         if (errorValue) {
           setStatus('error');
-          setMessageText(`Verification failed: ${errorValue}`);
-          message.error('Verification was cancelled or failed');
+          const errorMsg = errorDescription 
+            ? `${errorValue}: ${decodeURIComponent(errorDescription as string)}`
+            : errorValue;
+          setMessageText(`Verification failed: ${errorMsg}`);
+          message.error(errorDescription || 'Verification was cancelled or failed');
           
           // Redirect back to editor after 3 seconds
           setTimeout(() => {
