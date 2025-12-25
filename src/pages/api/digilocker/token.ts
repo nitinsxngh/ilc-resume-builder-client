@@ -18,7 +18,7 @@ interface TokenResponse {
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<TokenResponse | { error: string }>
+  res: NextApiResponse<TokenResponse | { error: string; error_description?: string }>
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -54,7 +54,7 @@ export default async function handler(
       });
       return res.status(500).json({ 
         error: 'Server configuration error',
-        details: `Missing: ${!clientId ? 'clientId ' : ''}${!redirectUri ? 'redirectUri' : ''}`
+        error_description: `Missing: ${!clientId ? 'clientId ' : ''}${!redirectUri ? 'redirectUri' : ''}`
       });
     }
 
