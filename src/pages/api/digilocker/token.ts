@@ -64,12 +64,17 @@ export default async function handler(
     params.append('code', code);
     params.append('client_id', clientId);
     params.append('redirect_uri', redirectUri);
-    params.append('code_verifier', codeVerifier);
-    // Note: code_challenge_method is only for authorization request, not token exchange
-
-    // Add client_secret if available (for confidential clients)
+    
+    // When openid is enabled in dashboard, MeriPahachan may require client_secret instead of PKCE
+    // Try with client_secret first (required when openid scope is enabled)
     if (clientSecret) {
       params.append('client_secret', clientSecret);
+    }
+    
+    // Only add code_verifier if client_secret is not available (PKCE for public clients)
+    // When openid is enabled, client_secret is typically required
+    if (!clientSecret && codeVerifier) {
+      params.append('code_verifier', codeVerifier);
     }
 
     console.log('Exchanging code for token server-side:', {
