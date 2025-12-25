@@ -520,6 +520,7 @@ class VerificationService {
 
   /**
    * Exchange authorization code for access token with PKCE
+   * Uses server-side API route to avoid CORS issues
    */
   private async exchangeCodeForToken(code: string): Promise<any> {
     if (!this.meriPahachanConfig) {
@@ -536,36 +537,26 @@ class VerificationService {
       throw new Error('PKCE code verifier not found. Please restart the verification process.');
     }
 
-    const tokenUrl = this.meriPahachanConfig.tokenUrl;
-    
-    const params = new URLSearchParams();
-    params.append('grant_type', 'authorization_code');
-    params.append('code', code);
-    params.append('client_id', this.meriPahachanConfig.clientId);
-    params.append('redirect_uri', this.meriPahachanConfig.redirectUri);
-    params.append('code_verifier', codeVerifier);
-
-    // Add client_secret only if it's configured (for confidential clients)
-    // For public clients (PKCE), secret is optional
-    if (this.meriPahachanConfig.clientSecret) {
-      params.append('client_secret', this.meriPahachanConfig.clientSecret);
-    }
-
-    console.log('Exchanging code for token at:', tokenUrl);
+    console.log('Exchanging code for token via API route');
     console.log('Using code_verifier:', codeVerifier ? '***' : 'not found');
 
-    const response = await fetch(tokenUrl, {
+    // Call our server-side API route instead of directly calling token endpoint
+    // This avoids CORS issues since DigiLocker doesn't allow browser-to-server token exchange
+    const response = await fetch('/api/digilocker/token', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/json'
       },
-      body: params.toString()
+      body: JSON.stringify({
+        code,
+        codeVerifier
+      })
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Token exchange failed:', response.status, errorText);
-      throw new Error(`Token exchange failed: ${response.status} ${response.statusText} - ${errorText}`);
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      console.error('Token exchange failed:', response.status, errorData);
+      throw new Error(errorData.error_description || errorData.error || `Token exchange failed: ${response.status}`);
     }
 
     const tokenData = await response.json();
@@ -581,28 +572,30 @@ class VerificationService {
 
   /**
    * Fetch user profile from MeriPahachan using userinfo endpoint
+   * Uses server-side API route to avoid potential CORS issues
    */
   private async fetchUserProfile(accessToken: string): Promise<any> {
     if (!this.meriPahachanConfig) {
       throw new Error('MeriPahachan configuration not available');
     }
 
-    const userinfoUrl = this.meriPahachanConfig.userinfoUrl;
+    console.log('Fetching user profile via API route');
     
-    console.log('Fetching user profile from:', userinfoUrl);
-    
-    const response = await fetch(userinfoUrl, {
-      method: 'GET',
+    // Call our server-side API route to avoid CORS issues
+    const response = await fetch('/api/digilocker/userinfo', {
+      method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
-      }
+      },
+      body: JSON.stringify({
+        accessToken
+      })
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Userinfo fetch failed:', response.status, errorText);
-      throw new Error(`Profile fetch failed: ${response.status} ${response.statusText} - ${errorText}`);
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      console.error('Userinfo fetch failed:', response.status, errorData);
+      throw new Error(errorData.error_description || errorData.error || `Profile fetch failed: ${response.status}`);
     }
 
     const profileData = await response.json();
