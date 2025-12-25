@@ -481,6 +481,7 @@ class VerificationService {
     }
 
     // Build URL with proper encoding - using MeriPehchaan OIDC endpoint
+    // When openid is enabled, PKCE may not be supported - try without it first
     const params = new URLSearchParams();
     params.append('response_type', 'code');
     params.append('client_id', this.meriPahachanConfig.clientId);
@@ -488,8 +489,9 @@ class VerificationService {
     params.append('redirect_uri', this.meriPahachanConfig.redirectUri);
     params.append('scope', scopes);
     params.append('state', state);
-    params.append('code_challenge', codeChallenge);
-    params.append('code_challenge_method', 'S256');
+    // When openid is enabled, don't use PKCE - MeriPahachan doesn't support it
+    // params.append('code_challenge', codeChallenge);
+    // params.append('code_challenge_method', 'S256');
     params.append('acr', 'aadhaar'); // Aadhaar authentication context
 
     const authUrl = `${this.meriPahachanConfig.authUrl}?${params.toString()}`;
@@ -529,18 +531,14 @@ class VerificationService {
       throw new Error('MeriPahachan configuration not available');
     }
 
-    // Get code_verifier from sessionStorage
+    // Get code_verifier from sessionStorage (optional when openid is enabled)
     let codeVerifier: string | null = null;
     if (typeof window !== 'undefined') {
       codeVerifier = sessionStorage.getItem('pkce_code_verifier');
     }
 
-    if (!codeVerifier) {
-      throw new Error('PKCE code verifier not found. Please restart the verification process.');
-    }
-
     console.log('Exchanging code for token via API route');
-    console.log('Using code_verifier:', codeVerifier ? '***' : 'not found');
+    console.log('Using code_verifier:', codeVerifier ? '***' : 'not found (using client_secret instead)');
 
     // Call our server-side API route instead of directly calling token endpoint
     // This avoids CORS issues since DigiLocker doesn't allow browser-to-server token exchange

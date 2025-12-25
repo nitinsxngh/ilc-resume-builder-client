@@ -27,9 +27,12 @@ export default async function handler(
   try {
     const { code, codeVerifier, state } = req.body as TokenRequest;
 
-    if (!code || !codeVerifier) {
-      return res.status(400).json({ error: 'Missing required parameters: code and codeVerifier' });
+    if (!code) {
+      return res.status(400).json({ error: 'Missing required parameter: code' });
     }
+    
+    // When openid is enabled, PKCE is not supported - codeVerifier is optional
+    // We'll use client_secret instead
 
     // Get MeriPahachan configuration from environment variables
     const clientId = process.env.NEXT_PUBLIC_MERIPAHACHAN_CLIENT_ID || process.env.MERIPAHACHAN_CLIENT_ID;
@@ -59,23 +62,24 @@ export default async function handler(
     }
 
     // Prepare token exchange request
+    // When openid is enabled, MeriPahachan requires client_secret and doesn't support PKCE
     const params = new URLSearchParams();
     params.append('grant_type', 'authorization_code');
     params.append('code', code);
     params.append('client_id', clientId);
     params.append('redirect_uri', redirectUri);
     
-    // When openid is enabled in dashboard, MeriPahachan may require client_secret instead of PKCE
-    // Try with client_secret first (required when openid scope is enabled)
-    if (clientSecret) {
-      params.append('client_secret', clientSecret);
+    // When openid is enabled, client_secret is REQUIRED (PKCE is not supported)
+    if (!clientSecret) {
+      console.error('client_secret is required when openid scope is enabled');
+      return res.status(500).json({ 
+        error: 'Server configuration error',
+        error_description: 'client_secret is required when openid scope is enabled in MeriPahachan dashboard'
+      });
     }
     
-    // Only add code_verifier if client_secret is not available (PKCE for public clients)
-    // When openid is enabled, client_secret is typically required
-    if (!clientSecret && codeVerifier) {
-      params.append('code_verifier', codeVerifier);
-    }
+    params.append('client_secret', clientSecret);
+    // Do NOT use code_verifier when openid is enabled - it's not supported
 
     console.log('Exchanging code for token server-side:', {
       tokenUrl,
