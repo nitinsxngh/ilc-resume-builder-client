@@ -103,7 +103,15 @@ export function IntroEdit({ METADATA, state, update }: any) {
   // Load verification data from backend or localStorage fallback
   useEffect(() => {
     const loadVerificationData = async () => {
-      let localStorageData = null;
+      let localStorageData: {
+        isVerified: boolean;
+        verifiedBy: string | null;
+        verificationDate: string | null;
+        verifiedFields: string[];
+        confidence: number;
+        isLoading: boolean;
+        error: string | null;
+      } | null = null;
       
       // First, try to load from localStorage as fallback (synchronous)
       if (typeof window !== 'undefined') {
