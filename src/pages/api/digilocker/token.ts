@@ -18,7 +18,7 @@ interface TokenResponse {
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<TokenResponse | { error: string }>
+  res: NextApiResponse<TokenResponse | { error: string; error_description?: string }>
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -34,12 +34,29 @@ export default async function handler(
     // Get MeriPahachan configuration from environment variables
     const clientId = process.env.NEXT_PUBLIC_MERIPAHACHAN_CLIENT_ID || process.env.MERIPAHACHAN_CLIENT_ID;
     const clientSecret = process.env.MERIPAHACHAN_CLIENT_SECRET;
-    const redirectUri = process.env.NEXT_PUBLIC_MERIPAHACHAN_REDIRECT_URI;
+    const redirectUri = process.env.NEXT_PUBLIC_MERIPAHACHAN_REDIRECT_URI || process.env.MERIPAHACHAN_REDIRECT_URI;
     const tokenUrl = process.env.MERIPAHACHAN_TOKEN_URL || 'https://digilocker.meripehchaan.gov.in/public/oauth2/1/token';
 
+    console.log('Token API - Environment check:', {
+      hasClientId: !!clientId,
+      hasClientSecret: !!clientSecret,
+      hasRedirectUri: !!redirectUri,
+      tokenUrl,
+      clientId: clientId || 'MISSING',
+      redirectUri: redirectUri || 'MISSING',
+      envKeys: Object.keys(process.env).filter(key => key.includes('MERIPAHACHAN'))
+    });
+
     if (!clientId || !redirectUri) {
-      console.error('MeriPahachan configuration missing:', { hasClientId: !!clientId, hasRedirectUri: !!redirectUri });
-      return res.status(500).json({ error: 'Server configuration error' });
+      console.error('MeriPahachan configuration missing:', { 
+        hasClientId: !!clientId, 
+        hasRedirectUri: !!redirectUri,
+        envKeys: Object.keys(process.env).filter(key => key.includes('MERIPAHACHAN'))
+      });
+      return res.status(500).json({ 
+        error: 'Server configuration error',
+        error_description: `Missing: ${!clientId ? 'clientId ' : ''}${!redirectUri ? 'redirectUri' : ''}`
+      });
     }
 
     // Prepare token exchange request
