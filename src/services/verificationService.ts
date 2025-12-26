@@ -71,8 +71,11 @@ class VerificationService {
     };
 
     // MeriPahachan (DigiLocker OIDC) configuration
-    // When openid is enabled, use OpenID protocol endpoints (oauth2/2) instead of regular OAuth (oauth2/1)
+    // When openid is enabled, use OpenID protocol endpoints (oauth2/2) for auth and token
+    // Note: OpenID Connect returns user info in id_token JWT (no separate userinfo endpoint)
+    // Regular OAuth userinfo endpoint is at /oauth2/1/user (used as fallback)
     const baseUrl = 'https://digilocker.meripehchaan.gov.in/public/oauth2/2';
+    const oauth1BaseUrl = 'https://digilocker.meripehchaan.gov.in/public/oauth2/1';
     
     // IMPORTANT: Redirect URI must EXACTLY match what's registered in MeriPehchaan dashboard
     // Default to production URL, but allow override via environment variable
@@ -85,7 +88,7 @@ class VerificationService {
       redirectUri: redirectUri, // Must match exactly what's registered in MeriPehchaan
       authUrl: process.env.NEXT_PUBLIC_MERIPAHACHAN_AUTH_URL || `${baseUrl}/authorize`,
       tokenUrl: process.env.MERIPAHACHAN_TOKEN_URL || `${baseUrl}/token`,
-      userinfoUrl: process.env.MERIPAHACHAN_USERINFO_URL || `${baseUrl}/userinfo`,
+      userinfoUrl: process.env.MERIPAHACHAN_USERINFO_URL || `${oauth1BaseUrl}/user`,
       scopes: [
         'userdetails'
       ]
@@ -299,7 +302,10 @@ class VerificationService {
       // Exchange authorization code for access token
       console.log('Exchanging code for token...');
       const tokenResponse = await this.exchangeCodeForToken(code);
-      console.log('Token response received:', { hasAccessToken: !!tokenResponse.access_token });
+      console.log('Token response received:', { 
+        hasAccessToken: !!tokenResponse.access_token,
+        hasIdToken: !!(tokenResponse as any).id_token 
+      });
       
       if (!tokenResponse.access_token) {
         console.error('No access token in response:', tokenResponse);
@@ -309,14 +315,16 @@ class VerificationService {
         };
       }
 
-      // Check if id_token is available (OpenID Connect)
+      // For OpenID Connect, user info is in id_token JWT (per MeriPehchaan API spec v2.3)
+      // For regular OAuth, we need to call userinfo endpoint
       let profileData: any = null;
       
-      if (tokenResponse.id_token) {
-        console.log('id_token received, attempting to decode user info from JWT');
+      if ((tokenResponse as any).id_token) {
+        console.log('id_token present, decoding JWT for user info (OpenID Connect)...');
         try {
           // Decode JWT id_token (base64url decode the payload) - browser compatible
-          const parts = tokenResponse.id_token.split('.');
+          const idToken = (tokenResponse as any).id_token;
+          const parts = idToken.split('.');
           if (parts.length === 3) {
             // Base64URL decode (replace - with +, _ with /, add padding if needed)
             let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -326,17 +334,19 @@ class VerificationService {
             const payload = JSON.parse(atob(base64));
             console.log('Decoded id_token payload:', payload);
             profileData = payload;
+          } else {
+            console.warn('Invalid id_token format, expected 3 parts separated by dots');
           }
         } catch (error) {
-          console.warn('Failed to decode id_token, will try userinfo endpoint:', error);
+          console.error('Failed to decode id_token, will try userinfo endpoint:', error);
         }
       }
       
-      // If no profile data from id_token, fetch from userinfo endpoint
+      // If no profile data from id_token, fetch from userinfo endpoint (regular OAuth)
       if (!profileData) {
-        console.log('Fetching user profile from userinfo endpoint...');
+        console.log('No id_token or decode failed, fetching user profile from userinfo endpoint...');
         profileData = await this.fetchUserProfile(tokenResponse.access_token);
-        console.log('Profile data received:', profileData);
+        console.log('Profile data received from userinfo endpoint:', profileData);
       }
       
       // Get stored verification request
@@ -348,20 +358,31 @@ class VerificationService {
         }
       }
 
-      // Extract name from profile (userinfo endpoint format)
-      // MeriPehchaan userinfo may return: given_name, family_name, name, or full_name
+      // Extract name from profile
+      // JWT id_token format (OpenID Connect): given_name, preferred_username
+      // Userinfo endpoint format: name, given_name, family_name, full_name
       const verifiedName = profileData.name 
         || (profileData.given_name && profileData.family_name 
             ? `${profileData.given_name} ${profileData.family_name}` 
             : '')
         || profileData.given_name 
         || profileData.full_name 
+        || profileData.preferred_username
         || '';
       
-      // Extract email
+      // Extract email (JWT: email, Userinfo: email or email_address)
       const verifiedEmail = profileData.email || profileData.email_address || '';
       
-      // Extract address
+      // Extract phone (JWT: phone_number, Userinfo: phone or phone_number)
+      const verifiedPhone = profileData.phone_number || profileData.phone || '';
+      
+      // Extract PAN (JWT: pan_number)
+      const verifiedPan = profileData.pan_number || profileData.pan || '';
+      
+      // Extract Aadhaar (JWT: masked_aadhaar)
+      const verifiedAadhaar = profileData.masked_aadhaar || profileData.aadhaar || '';
+      
+      // Extract address (Userinfo endpoint format)
       const verifiedAddress = profileData.address 
         || (profileData.address_line1 && profileData.address_line2 
             ? `${profileData.address_line1}, ${profileData.address_line2}` 
@@ -371,6 +392,9 @@ class VerificationService {
       console.log('Extracted profile data:', {
         verifiedName,
         verifiedEmail,
+        verifiedPhone,
+        verifiedPan,
+        verifiedAadhaar,
         verifiedAddress,
         fullProfile: profileData
       });
@@ -385,6 +409,15 @@ class VerificationService {
       }
       if (verifiedEmail) {
         verifiedFields.push('email');
+      }
+      if (verifiedPhone) {
+        verifiedFields.push('phone');
+      }
+      if (verifiedPan) {
+        verifiedFields.push('pan');
+      }
+      if (verifiedAadhaar) {
+        verifiedFields.push('aadhaar');
       }
       if (verifiedAddress) {
         verifiedFields.push('address');
@@ -408,6 +441,11 @@ class VerificationService {
           confidence: nameMatch && verifiedName ? 0.95 : 0.85,
           rawData: {
             verifiedName,
+            verifiedEmail,
+            verifiedPhone,
+            verifiedPan,
+            verifiedAadhaar,
+            verifiedAddress,
             resumeName,
             nameMatch: resumeName ? nameMatch : true,
             profileData

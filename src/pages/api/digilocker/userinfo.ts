@@ -19,18 +19,20 @@ export default async function handler(
       return res.status(400).json({ error: 'Missing access token' });
     }
 
-    // When openid is enabled, try OpenID protocol endpoint (oauth2/2) first, fallback to oauth2/1
-    const userinfoUrlV2 = process.env.MERIPAHACHAN_USERINFO_URL || 'https://digilocker.meripehchaan.gov.in/public/oauth2/2/userinfo';
-    const userinfoUrlV1 = 'https://digilocker.meripehchaan.gov.in/public/oauth2/1/userinfo';
-    
+    // According to MeriPehchaan API spec v2.3:
+    // - OpenID Connect (/oauth2/2/token) returns user info in id_token JWT (no separate userinfo endpoint)
+    // - Regular OAuth (/oauth2/1/token) has userinfo endpoint at /oauth2/1/user
+    // Use the regular OAuth userinfo endpoint as fallback
+    const userinfoUrl = process.env.MERIPAHACHAN_USERINFO_URL || 'https://digilocker.meripehchaan.gov.in/public/oauth2/1/user';
+
     console.log('Fetching user profile server-side:', {
-      userinfoUrlV2,
+      userinfoUrl,
       hasAccessToken: !!accessToken,
       accessTokenPrefix: accessToken ? accessToken.substring(0, 20) + '...' : 'missing'
     });
 
-    // Try OpenID endpoint first (oauth2/2)
-    let response = await fetch(userinfoUrlV2, {
+    // Fetch userinfo from server (avoids CORS if userinfo endpoint blocks browsers)
+    const response = await fetch(userinfoUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -38,30 +40,12 @@ export default async function handler(
       }
     });
 
-    // If 404, try the regular OAuth endpoint (oauth2/1) as fallback
-    if (response.status === 404) {
-      console.log('OpenID userinfo endpoint returned 404, trying OAuth endpoint (oauth2/1)...');
-      response = await fetch(userinfoUrlV1, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json'
-        }
-      });
-    }
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Userinfo fetch failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        triedUrls: [userinfoUrlV2, userinfoUrlV1],
-        errorText: errorText.substring(0, 500) // First 500 chars
-      });
-      
+      console.error('Userinfo fetch failed:', response.status, errorText);
       return res.status(response.status).json({ 
         error: 'Failed to fetch user profile',
-        error_description: errorText.substring(0, 500)
+        error_description: errorText 
       });
     }
 
