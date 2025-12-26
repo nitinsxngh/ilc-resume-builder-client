@@ -19,17 +19,18 @@ export default async function handler(
       return res.status(400).json({ error: 'Missing access token' });
     }
 
-    // When openid is enabled, use OpenID protocol endpoint (oauth2/2) instead of regular OAuth (oauth2/1)
-    const userinfoUrl = process.env.MERIPAHACHAN_USERINFO_URL || 'https://digilocker.meripehchaan.gov.in/public/oauth2/2/userinfo';
-
+    // When openid is enabled, try OpenID protocol endpoint (oauth2/2) first, fallback to oauth2/1
+    const userinfoUrlV2 = process.env.MERIPAHACHAN_USERINFO_URL || 'https://digilocker.meripehchaan.gov.in/public/oauth2/2/userinfo';
+    const userinfoUrlV1 = 'https://digilocker.meripehchaan.gov.in/public/oauth2/1/userinfo';
+    
     console.log('Fetching user profile server-side:', {
-      userinfoUrl,
+      userinfoUrlV2,
       hasAccessToken: !!accessToken,
       accessTokenPrefix: accessToken ? accessToken.substring(0, 20) + '...' : 'missing'
     });
 
-    // Fetch userinfo from server (avoids CORS if userinfo endpoint blocks browsers)
-    const response = await fetch(userinfoUrl, {
+    // Try OpenID endpoint first (oauth2/2)
+    let response = await fetch(userinfoUrlV2, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -37,22 +38,26 @@ export default async function handler(
       }
     });
 
+    // If 404, try the regular OAuth endpoint (oauth2/1) as fallback
+    if (response.status === 404) {
+      console.log('OpenID userinfo endpoint returned 404, trying OAuth endpoint (oauth2/1)...');
+      response = await fetch(userinfoUrlV1, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json'
+        }
+      });
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Userinfo fetch failed:', {
         status: response.status,
         statusText: response.statusText,
-        url: userinfoUrl,
+        triedUrls: [userinfoUrlV2, userinfoUrlV1],
         errorText: errorText.substring(0, 500) // First 500 chars
       });
-      
-      // If 404, the endpoint might be wrong - try to provide helpful error
-      if (response.status === 404) {
-        return res.status(404).json({ 
-          error: 'Userinfo endpoint not found',
-          error_description: `The userinfo endpoint ${userinfoUrl} returned 404. Please verify the correct OpenID userinfo endpoint URL.`
-        });
-      }
       
       return res.status(response.status).json({ 
         error: 'Failed to fetch user profile',

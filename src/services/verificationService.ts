@@ -309,10 +309,35 @@ class VerificationService {
         };
       }
 
-      // Fetch user profile information
-      console.log('Fetching user profile...');
-      const profileData = await this.fetchUserProfile(tokenResponse.access_token);
-      console.log('Profile data received:', profileData);
+      // Check if id_token is available (OpenID Connect)
+      let profileData: any = null;
+      
+      if (tokenResponse.id_token) {
+        console.log('id_token received, attempting to decode user info from JWT');
+        try {
+          // Decode JWT id_token (base64url decode the payload) - browser compatible
+          const parts = tokenResponse.id_token.split('.');
+          if (parts.length === 3) {
+            // Base64URL decode (replace - with +, _ with /, add padding if needed)
+            let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+            while (base64.length % 4) {
+              base64 += '=';
+            }
+            const payload = JSON.parse(atob(base64));
+            console.log('Decoded id_token payload:', payload);
+            profileData = payload;
+          }
+        } catch (error) {
+          console.warn('Failed to decode id_token, will try userinfo endpoint:', error);
+        }
+      }
+      
+      // If no profile data from id_token, fetch from userinfo endpoint
+      if (!profileData) {
+        console.log('Fetching user profile from userinfo endpoint...');
+        profileData = await this.fetchUserProfile(tokenResponse.access_token);
+        console.log('Profile data received:', profileData);
+      }
       
       // Get stored verification request
       let storedRequest: VerificationRequest | null = null;
