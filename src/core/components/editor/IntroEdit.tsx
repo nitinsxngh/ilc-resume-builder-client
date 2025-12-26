@@ -100,54 +100,9 @@ export function IntroEdit({ METADATA, state, update }: any) {
     error: null as string | null
   });
 
-  // Load verification data from backend or localStorage fallback
+  // Load verification data from backend
   useEffect(() => {
     const loadVerificationData = async () => {
-      let localStorageData: {
-        isVerified: boolean;
-        verifiedBy: string | null;
-        verificationDate: string | null;
-        verifiedFields: string[];
-        confidence: number;
-        isLoading: boolean;
-        error: string | null;
-      } | null = null;
-      
-      // First, try to load from localStorage as fallback (synchronous)
-      if (typeof window !== 'undefined') {
-        try {
-          const storedVerification = localStorage.getItem('verification_data');
-          if (storedVerification) {
-            localStorageData = JSON.parse(storedVerification);
-            console.log('Loaded verification data from localStorage:', localStorageData);
-            // Use localStorage data as initial state immediately
-            if (localStorageData) {
-              setVerificationState(localStorageData);
-              (window as any).__verificationData__ = {
-                isVerified: localStorageData.isVerified || false,
-                verifiedBy: localStorageData.verifiedBy || null,
-                verificationDate: localStorageData.verificationDate || null,
-                verifiedFields: localStorageData.verifiedFields || [],
-                confidence: localStorageData.confidence || 0
-              };
-              // Dispatch event so templates update
-              window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
-                detail: {
-                  isVerified: localStorageData.isVerified || false,
-                  verifiedBy: localStorageData.verifiedBy || null,
-                  verificationDate: localStorageData.verificationDate || null,
-                  verifiedFields: localStorageData.verifiedFields || [],
-                  confidence: localStorageData.confidence || 0
-                }
-              }));
-            }
-          }
-        } catch (storageError) {
-          console.warn('Error loading verification from localStorage:', storageError);
-        }
-      }
-      
-      // Then try to load from backend (will override localStorage if successful)
       try {
         const defaultResume = await resumeApiService.getDefaultResume();
         if (defaultResume && defaultResume._id && defaultResume.verification) {
@@ -174,40 +129,10 @@ export function IntroEdit({ METADATA, state, update }: any) {
             window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
               detail: verification 
             }));
-            // Update localStorage with backend data
-            try {
-              localStorage.setItem('verification_data', JSON.stringify(newState));
-            } catch (storageError) {
-              console.warn('Could not update localStorage:', storageError);
-            }
           }
         } else {
           console.log('No verification data found in resume');
-          // Only set to unverified if we don't have localStorage data
-          if (!localStorageData) {
-            setVerificationState({
-              isVerified: false,
-              verifiedBy: null,
-              verificationDate: null,
-              verifiedFields: [],
-              confidence: 0,
-              isLoading: false,
-              error: null
-            });
-          } else {
-            console.log('Keeping localStorage verification data since backend has none');
-          }
-        }
-      } catch (error: any) {
-        // Only log if it's not a network error (expected when backend is down)
-        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('NetworkError') && !error?.message?.includes('timeout') && !error?.message?.includes('aborted')) {
-          console.error('Error loading verification data:', error);
-        }
-        // Keep localStorage data if backend is unavailable
-        if (localStorageData) {
-          console.log('Backend unavailable, keeping localStorage verification data');
-        } else {
-          console.log('Backend unavailable and no localStorage data, setting to unverified');
+          // Ensure state is set to unverified if no data
           setVerificationState({
             isVerified: false,
             verifiedBy: null,
@@ -218,6 +143,21 @@ export function IntroEdit({ METADATA, state, update }: any) {
             error: null
           });
         }
+      } catch (error: any) {
+        // Only log if it's not a network error (expected when backend is down)
+        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('NetworkError')) {
+          console.error('Error loading verification data:', error);
+        }
+        // Set to unverified on error
+        setVerificationState({
+          isVerified: false,
+          verifiedBy: null,
+          verificationDate: null,
+          verifiedFields: [],
+          confidence: 0,
+          isLoading: false,
+          error: null
+        });
       }
     };
 
@@ -300,16 +240,6 @@ export function IntroEdit({ METADATA, state, update }: any) {
         }));
       }
       
-      // Store verification data in localStorage as fallback if backend is unavailable
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('verification_data', JSON.stringify(newState));
-          console.log('Stored verification data in localStorage:', newState);
-        } catch (storageError) {
-          console.warn('Could not store verification data in localStorage:', storageError);
-        }
-      }
-      
       // Reload verification data from backend to ensure sync
       try {
         const defaultResume = await resumeApiService.getDefaultResume();
@@ -318,7 +248,7 @@ export function IntroEdit({ METADATA, state, update }: any) {
           console.log('Reloaded verification from backend:', backendVerification);
           
           // Update state with backend data
-          const backendState = {
+          setVerificationState({
             isVerified: backendVerification.isVerified || false,
             verifiedBy: backendVerification.verifiedBy || null,
             verificationDate: backendVerification.verificationDate || null,
@@ -326,42 +256,25 @@ export function IntroEdit({ METADATA, state, update }: any) {
             confidence: backendVerification.confidence || 0,
             isLoading: false,
             error: null
-          };
-          
-          setVerificationState(backendState);
+          });
           
           (window as any).__verificationData__ = backendVerification;
           // Dispatch custom event to notify templates
           window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
             detail: backendVerification 
           }));
-        } else {
-          console.log('No verification data in backend, using local state');
         }
       } catch (error: any) {
         // Only log if it's not a network error (expected when backend is down)
         if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('NetworkError')) {
           console.error('Error reloading verification data:', error);
         }
-        // Keep the local state if backend is unavailable
-        console.log('Backend unavailable, using local verification state');
       }
     }
   };
 
   const getVerificationStatus = () => {
-    console.log('getVerificationStatus called, current state:', {
-      isLoading: verificationState.isLoading,
-      isVerified: verificationState.isVerified,
-      verifiedFields: verificationState.verifiedFields,
-      verifiedFieldsLength: verificationState.verifiedFields?.length
-    });
-    
     if (verificationState.isLoading) return 'loading';
-    // Check if we have verified fields (even if isVerified flag is false)
-    if (verificationState.verifiedFields && verificationState.verifiedFields.length > 0) {
-      return 'verified';
-    }
     if (verificationState.isVerified) return 'verified';
     return 'unverified';
   };
