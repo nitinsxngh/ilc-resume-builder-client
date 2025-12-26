@@ -18,7 +18,7 @@ interface TokenResponse {
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<TokenResponse | { error: string; error_description?: string }>
+  res: NextApiResponse<TokenResponse | { error: string }>
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -27,74 +27,41 @@ export default async function handler(
   try {
     const { code, codeVerifier, state } = req.body as TokenRequest;
 
-    if (!code) {
-      return res.status(400).json({ error: 'Missing required parameter: code' });
+    if (!code || !codeVerifier) {
+      return res.status(400).json({ error: 'Missing required parameters: code and codeVerifier' });
     }
-    
-    // When openid is enabled, PKCE is not supported - codeVerifier is optional
-    // We'll use client_secret instead
 
     // Get MeriPahachan configuration from environment variables
     const clientId = process.env.NEXT_PUBLIC_MERIPAHACHAN_CLIENT_ID || process.env.MERIPAHACHAN_CLIENT_ID;
     const clientSecret = process.env.MERIPAHACHAN_CLIENT_SECRET;
-    const redirectUri = process.env.NEXT_PUBLIC_MERIPAHACHAN_REDIRECT_URI || process.env.MERIPAHACHAN_REDIRECT_URI;
+    const redirectUri = process.env.NEXT_PUBLIC_MERIPAHACHAN_REDIRECT_URI;
     const tokenUrl = process.env.MERIPAHACHAN_TOKEN_URL || 'https://digilocker.meripehchaan.gov.in/public/oauth2/1/token';
 
-    console.log('Token API - Environment check:', {
-      hasClientId: !!clientId,
-      hasClientSecret: !!clientSecret,
-      hasRedirectUri: !!redirectUri,
-      tokenUrl,
-      clientId: clientId || 'MISSING',
-      redirectUri: redirectUri || 'MISSING'
-    });
-
     if (!clientId || !redirectUri) {
-      console.error('MeriPahachan configuration missing:', { 
-        hasClientId: !!clientId, 
-        hasRedirectUri: !!redirectUri,
-        envKeys: Object.keys(process.env).filter(key => key.includes('MERIPAHACHAN'))
-      });
-      return res.status(500).json({ 
-        error: 'Server configuration error',
-        error_description: `Missing: ${!clientId ? 'clientId ' : ''}${!redirectUri ? 'redirectUri' : ''}`
-      });
+      console.error('MeriPahachan configuration missing:', { hasClientId: !!clientId, hasRedirectUri: !!redirectUri });
+      return res.status(500).json({ error: 'Server configuration error' });
     }
 
     // Prepare token exchange request
-    // When openid is enabled, MeriPahachan requires client_secret and doesn't support PKCE
     const params = new URLSearchParams();
     params.append('grant_type', 'authorization_code');
     params.append('code', code);
     params.append('client_id', clientId);
     params.append('redirect_uri', redirectUri);
-    
-    // When openid is enabled, client_secret is REQUIRED (PKCE is not supported)
-    if (!clientSecret) {
-      console.error('client_secret is required when openid scope is enabled');
-      return res.status(500).json({ 
-        error: 'Server configuration error',
-        error_description: 'client_secret is required when openid scope is enabled in MeriPahachan dashboard'
-      });
+    params.append('code_verifier', codeVerifier);
+    params.append('code_challenge_method', 'S256');
+
+    // Add client_secret if available (for confidential clients)
+    if (clientSecret) {
+      params.append('client_secret', clientSecret);
     }
-    
-    params.append('client_secret', clientSecret);
-    // Do NOT use code_verifier when openid is enabled - it's not supported
 
     console.log('Exchanging code for token server-side:', {
       tokenUrl,
       clientId,
       redirectUri,
       hasCodeVerifier: !!codeVerifier,
-      hasClientSecret: !!clientSecret,
-      grantType: 'authorization_code',
-      params: {
-        grant_type: 'authorization_code',
-        code: code.substring(0, 10) + '...',
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        code_verifier: codeVerifier ? '***' : 'missing'
-      }
+      hasClientSecret: !!clientSecret
     });
 
     // Exchange code for token (server-to-server, no CORS issues)
