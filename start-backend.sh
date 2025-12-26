@@ -8,16 +8,20 @@ echo ""
 # Change to the project root directory
 cd "$(dirname "$0")"
 
-# Check if server/.env file exists
-if [ ! -f server/.env ]; then
-    echo "❌ Error: server/.env file not found"
+# Check if .env file exists
+if [ ! -f .env ]; then
+    echo "❌ Error: .env file not found in project root"
     exit 1
 fi
 
+# Check if MONGODB_URI is set
+if ! grep -q "MONGODB_URI" .env; then
+    echo "⚠️  Warning: MONGODB_URI is not set in .env file"
+fi
+
 # Check if PORT is set to 5001
-if ! grep -q "PORT=5001" server/.env; then
-    echo "⚠️  Warning: PORT is not set to 5001 in server/.env file"
-    echo "   Current PORT setting: $(grep 'PORT=' server/.env || echo 'PORT not found')"
+if ! grep -q "PORT=5001" .env && ! grep -q "PORT=5000" .env; then
+    echo "ℹ️  Using default PORT: 5001"
 fi
 
 echo "📁 Starting server from: $(pwd)"

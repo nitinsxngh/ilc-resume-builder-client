@@ -55,11 +55,32 @@ export function Resume() {
             (window as any).__verificationData__ = null;
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error loading verification data in Resume component:', error);
-        // Clear verification data on error
+        // If backend is unavailable, try to use sessionStorage data as fallback
         if (typeof window !== 'undefined') {
-          (window as any).__verificationData__ = null;
+          const storedResult = sessionStorage.getItem('verification_result');
+          if (storedResult) {
+            try {
+              const result = JSON.parse(storedResult);
+              const verificationData = {
+                isVerified: result.verifiedFields?.length > 0 || false,
+                verifiedBy: result.verifiedBy,
+                verificationDate: result.verificationDate,
+                verifiedFields: result.verifiedFields || [],
+                confidence: result.confidence
+              };
+              setVerificationData(verificationData);
+              (window as any).__verificationData__ = verificationData;
+              console.log('Using verification data from sessionStorage as fallback in Resume component');
+            } catch (parseError) {
+              console.error('Error parsing sessionStorage verification data:', parseError);
+              (window as any).__verificationData__ = null;
+            }
+          } else {
+            // Clear verification data on error if no fallback available
+            (window as any).__verificationData__ = null;
+          }
         }
       }
     };

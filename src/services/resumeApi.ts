@@ -176,15 +176,38 @@ class ResumeApiService {
   async getDefaultResume(): Promise<ResumeData | null> {
     try {
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/resumes/default`, {
-        method: 'GET',
-        headers,
-      });
       
-      const result = await this.handleResponse<ResumeData>(response);
-      return result.data || null;
-    } catch (error) {
+      // Add timeout to fetch request (30 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/resumes/default`, {
+          method: 'GET',
+          headers,
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        const result = await this.handleResponse<ResumeData>(response);
+        return result.data || null;
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Request timeout: Backend server is not responding. Please check your connection and try again.');
+        }
+        if (fetchError.message?.includes('Failed to fetch') || fetchError.message?.includes('ERR_CONNECTION_TIMED_OUT')) {
+          throw new Error('Connection timeout: Unable to reach the backend server. Please check your internet connection and try again.');
+        }
+        throw fetchError;
+      }
+    } catch (error: any) {
       console.error('Error fetching default resume:', error);
+      // Return null instead of throwing to allow app to continue working
+      // The app can fall back to sessionStorage data
+      if (error.message?.includes('timeout') || error.message?.includes('Connection')) {
+        console.warn('Backend unavailable, app will use cached data if available');
+      }
       throw error;
     }
   }

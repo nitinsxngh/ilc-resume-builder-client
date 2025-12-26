@@ -10,18 +10,18 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
-if [ ! -f server/.env ]; then
-    echo "❌ Error: Backend .env file not found in server directory"
-    echo "   Please ensure you have a server/.env file with backend configuration"
-    exit 1
-fi
-
 # Check environment configuration
 echo "🔍 Checking environment configuration..."
-if grep -q "PORT=5001" server/.env; then
-    echo "✅ Backend port: 5001"
+if grep -q "MONGODB_URI" .env; then
+    echo "✅ MongoDB URI configured"
 else
-    echo "⚠️  Backend port not set to 5001"
+    echo "⚠️  MongoDB URI not found in .env file"
+fi
+
+if grep -q "PORT=5001" .env || grep -q "PORT=5000" .env; then
+    echo "✅ Backend port configured"
+else
+    echo "ℹ️  Using default backend port: 5001"
 fi
 
 if grep -q "NEXT_PUBLIC_API_URL" .env; then

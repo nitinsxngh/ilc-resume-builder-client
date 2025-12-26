@@ -123,8 +123,37 @@ export function IntroEdit({ METADATA, state, update }: any) {
           }));
         }
       }
-    } catch (error) {
-      console.error('Error loading verification data:', error);
+    } catch (error: any) {
+      console.error('Error loading verification data from backend:', error);
+      // If backend is unavailable, try to use sessionStorage data as fallback
+      if (typeof window !== 'undefined') {
+        const storedResult = sessionStorage.getItem('verification_result');
+        if (storedResult) {
+          try {
+            const result = JSON.parse(storedResult);
+            setVerificationState({
+              isVerified: result.verifiedFields?.length > 0 || false,
+              verifiedBy: result.verifiedBy || null,
+              verificationDate: result.verificationDate || null,
+              verifiedFields: result.verifiedFields || [],
+              confidence: result.confidence || 0,
+              isLoading: false,
+              error: null
+            });
+            // Store in window for templates to access
+            (window as any).__verificationData__ = {
+              isVerified: result.verifiedFields?.length > 0 || false,
+              verifiedBy: result.verifiedBy,
+              verificationDate: result.verificationDate,
+              verifiedFields: result.verifiedFields || [],
+              confidence: result.confidence
+            };
+            console.log('Using verification data from sessionStorage as fallback');
+          } catch (parseError) {
+            console.error('Error parsing sessionStorage verification data:', parseError);
+          }
+        }
+      }
     }
   }, []);
 

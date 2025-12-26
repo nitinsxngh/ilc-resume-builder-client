@@ -93,45 +93,49 @@ export default function DigiLockerCallbackPage() {
         console.log('Callback result:', result);
 
         if (result.success && result.data) {
+          const verificationData = result.data;
           setStatus('success');
           setMessageText(result.message || 'Verification completed successfully!');
           message.success('Identity verified successfully!');
           
           // Store verification result in sessionStorage
           if (typeof window !== 'undefined') {
-            sessionStorage.setItem('verification_result', JSON.stringify(result.data));
+            sessionStorage.setItem('verification_result', JSON.stringify(verificationData));
           }
           
-          // Save verification data to backend
-          try {
-            const defaultResume = await resumeApiService.getDefaultResume();
-            if (defaultResume && defaultResume._id) {
-              await resumeApiService.saveVerificationData(defaultResume._id, {
-                isVerified: true,
-                verifiedBy: result.data.verifiedBy,
-                verificationDate: result.data.verificationDate,
-                verifiedFields: result.data.verifiedFields || [],
-                confidence: result.data.confidence,
-                verifiedData: {
-                  name: result.data.rawData?.verifiedName || '',
-                  email: result.data.rawData?.verifiedEmail || '',
-                  phone: result.data.rawData?.verifiedPhone || '',
-                  aadhaar: result.data.rawData?.verifiedAadhaar || '',
-                  pan: result.data.rawData?.verifiedPan || '',
-                  address: result.data.rawData?.verifiedAddress || ''
-                }
-              });
+          // Save verification data to backend (non-blocking - don't wait for it)
+          resumeApiService.getDefaultResume()
+            .then(defaultResume => {
+              if (defaultResume && defaultResume._id) {
+                return resumeApiService.saveVerificationData(defaultResume._id, {
+                  isVerified: true,
+                  verifiedBy: verificationData.verifiedBy,
+                  verificationDate: verificationData.verificationDate,
+                  verifiedFields: verificationData.verifiedFields || [],
+                  confidence: verificationData.confidence,
+                  verifiedData: {
+                    name: verificationData.rawData?.verifiedName || '',
+                    email: verificationData.rawData?.verifiedEmail || '',
+                    phone: verificationData.rawData?.verifiedPhone || '',
+                    aadhaar: verificationData.rawData?.verifiedAadhaar || '',
+                    pan: verificationData.rawData?.verifiedPan || '',
+                    address: verificationData.rawData?.verifiedAddress || ''
+                  }
+                });
+              }
+            })
+            .then(() => {
               console.log('Verification data saved to backend successfully');
-            }
-          } catch (error) {
-            console.error('Error saving verification data to backend:', error);
-            // Don't fail the verification if backend save fails, but log the error
-          }
+            })
+            .catch(error => {
+              console.error('Error saving verification data to backend:', error);
+              // Don't fail the verification if backend save fails
+            });
           
-          // Redirect to editor after 2 seconds
+          // Redirect to editor immediately (reduced delay for better UX)
           setTimeout(() => {
             router.push('/editor');
-          }, 2000);
+          }, 1000);
         } else {
           setStatus('error');
           const errorMsg = result.error || result.message || 'Verification failed';
