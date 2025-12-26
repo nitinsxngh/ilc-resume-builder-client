@@ -147,6 +147,13 @@ export function SaveSettings() {
       } else {
         message.info('No saved resume found');
       }
+    } catch (error: any) {
+      // Only show error if it's not a network error (expected when backend is down)
+      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('NetworkError')) {
+        message.error('Error loading resume: ' + (error.message || 'Unknown error'));
+      } else {
+        message.warning('Backend API unavailable. Please check your connection.');
+      }
       
     } catch (error) {
       console.error('Error loading resume:', error);

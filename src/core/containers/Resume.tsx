@@ -55,8 +55,11 @@ export function Resume() {
             (window as any).__verificationData__ = null;
           }
         }
-      } catch (error) {
-        console.error('Error loading verification data in Resume component:', error);
+      } catch (error: any) {
+        // Only log if it's not a network error (expected when backend is down)
+        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('NetworkError')) {
+          console.error('Error loading verification data in Resume component:', error);
+        }
         // Clear verification data on error
         if (typeof window !== 'undefined') {
           (window as any).__verificationData__ = null;

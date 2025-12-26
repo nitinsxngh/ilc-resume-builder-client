@@ -441,9 +441,14 @@ export const VerificationPopup: React.FC<VerificationPopupProps> = ({
                 }
               });
               console.log('Verification data saved to backend');
+            } else {
+              console.warn('No default resume found, verification data not saved to backend');
             }
-          } catch (error) {
-            console.error('Error saving verification data to backend:', error);
+          } catch (error: any) {
+            // Only log if it's not a network error (expected when backend is down)
+            if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('NetworkError')) {
+              console.error('Error saving verification data to backend:', error);
+            }
             // Don't fail the verification if backend save fails
           }
           

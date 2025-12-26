@@ -143,8 +143,11 @@ export function IntroEdit({ METADATA, state, update }: any) {
             error: null
           });
         }
-      } catch (error) {
-        console.error('Error loading verification data:', error);
+      } catch (error: any) {
+        // Only log if it's not a network error (expected when backend is down)
+        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('NetworkError')) {
+          console.error('Error loading verification data:', error);
+        }
         // Set to unverified on error
         setVerificationState({
           isVerified: false,
@@ -261,8 +264,11 @@ export function IntroEdit({ METADATA, state, update }: any) {
             detail: backendVerification 
           }));
         }
-      } catch (error) {
-        console.error('Error reloading verification data:', error);
+      } catch (error: any) {
+        // Only log if it's not a network error (expected when backend is down)
+        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('NetworkError')) {
+          console.error('Error reloading verification data:', error);
+        }
       }
     }
   };
