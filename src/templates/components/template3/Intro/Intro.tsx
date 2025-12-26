@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import Color from 'color';
 import { getIcon } from 'src/styles/icons';
 import Image from 'next/image';
+import { CheckCircleOutlined } from '@ant-design/icons';
 
 const IntroContainer = styled.div`
   display: flex;
@@ -64,18 +65,22 @@ const ContactItemContainer = styled.div`
   }
 `;
 
-function ContactItem({ value = '', icon = <></>, redirectAction = '' }: any) {
+function ContactItem({ value = '', icon = <></>, redirectAction = '', isVerified = false }: any) {
   return (
     <ContactItemContainer>
       <p className="label">
         {redirectAction ? <a href={redirectAction}>{value}</a> : <p>{value}</p>}
+        {isVerified && <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: '6px', fontSize: '14px' }} />}
       </p>
       <div className="icon">{icon}</div>
     </ContactItemContainer>
   );
 }
 
-function Intro({ intro }: any) {
+function Intro({ intro, verification }: any) {
+  const verifiedFields = verification?.verifiedFields || [];
+  const isEmailVerified = verifiedFields.includes('email');
+  const isPhoneVerified = verifiedFields.includes('phone');
   return (
     <IntroContainer>
       <div className="about">
@@ -85,7 +90,12 @@ function Intro({ intro }: any) {
           </div>
         )}
         <div className="about__info">
-          <p className="about__info__name">{intro.name}</p>
+          <p className="about__info__name">
+            {intro.name}
+            {verification?.verifiedFields?.includes('name') && (
+              <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: '8px', fontSize: '16px' }} />
+            )}
+          </p>
           <p className="about__info__title">{intro.label}</p>
           <div className="about__info__experience">
             <p className="about__info__experience__item">
@@ -104,11 +114,13 @@ function Intro({ intro }: any) {
           icon={getIcon('mobile')}
           value={intro.phone}
           redirectAction={`tel:${intro.phone}`}
+          isVerified={isPhoneVerified}
         />
         <ContactItem
           icon={getIcon('email')}
           value={intro.email}
           redirectAction={`mailto:${intro.email}`}
+          isVerified={isEmailVerified}
         />
         <ContactItem icon={getIcon('location')} value={intro.location.city} type="location" />
       </div>

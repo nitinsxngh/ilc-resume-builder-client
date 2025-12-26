@@ -88,10 +88,13 @@ export default function Template3() {
 
   // Safety check: ensure companies is an array
   const safeCompanies = Array.isArray(companies) ? companies : [];
+  
+  // Get verification data from window (set by IntroEdit)
+  const verification = (typeof window !== 'undefined' && (window as any).__verificationData__) || null;
 
   return (
     <ResumeContainer>
-      <Intro name="Varchasvi" intro={intro} />
+      <Intro name="Varchasvi" intro={intro} verification={verification} />
       <Social profiles={intro.profiles} />
       <div className="body">
         <div className="body__section body__section--left">

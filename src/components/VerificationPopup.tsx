@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Modal, Button, Steps, Card, Typography, Alert, Spin, message, Form, Input, Select, Upload } from 'antd';
+import { resumeApiService } from 'src/services/resumeApi';
 import { 
   CheckCircleOutlined, 
   CloseCircleOutlined, 
@@ -419,6 +420,33 @@ export const VerificationPopup: React.FC<VerificationPopupProps> = ({
           };
           // Add verification metadata (callbacks accept any, so this is safe)
           Object.assign(completeVerificationData, result.data);
+          
+          // Save verification data to backend
+          try {
+            const defaultResume = await resumeApiService.getDefaultResume();
+            if (defaultResume && defaultResume._id) {
+              await resumeApiService.saveVerificationData(defaultResume._id, {
+                isVerified: true,
+                verifiedBy: result.data.verifiedBy,
+                verificationDate: result.data.verificationDate,
+                verifiedFields: result.data.verifiedFields || [],
+                confidence: result.data.confidence,
+                verifiedData: {
+                  name: completeVerificationData.name,
+                  email: completeVerificationData.email,
+                  phone: completeVerificationData.phone,
+                  aadhaar: completeVerificationData.aadhaar,
+                  pan: completeVerificationData.pan,
+                  address: completeVerificationData.address
+                }
+              });
+              console.log('Verification data saved to backend');
+            }
+          } catch (error) {
+            console.error('Error saving verification data to backend:', error);
+            // Don't fail the verification if backend save fails
+          }
+          
           onVerificationComplete(completeVerificationData as any);
           setIsLoading(false);
         } else {

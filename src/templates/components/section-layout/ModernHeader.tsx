@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import Color from 'color';
 import { Flex, FlexHVC } from 'src/styles/styles';
 import { getIcon } from 'src/styles/icons';
+import { CheckCircleOutlined } from '@ant-design/icons';
 
 const SectionHolder = styled.div`
   border: 1px solid ${(props) => Color(props.theme.fontColor).alpha(0.25).toString()};
@@ -67,17 +68,28 @@ export function ModernHeader({ styles, title, icon, children }: any) {
   );
 }
 
+const VerifiedIcon = styled(CheckCircleOutlined)`
+  color: #52c41a;
+  font-size: 18px;
+  margin-left: 8px;
+`;
+
 export function ModernHeaderIntro({
   styles,
   title,
   profiles,
   children,
   displaySocial = true,
+  verification,
 }: any) {
+  const verifiedFields = verification?.verifiedFields || [];
+  const isNameVerified = verifiedFields.includes('name');
+
   return (
     <SectionIntroHolder style={styles}>
       <FlexHVC className="header">
         <h1 className="header__title">{title}</h1>
+        {isNameVerified && <VerifiedIcon />}
       </FlexHVC>
       {displaySocial ? (
         <Flex className="social-icons">

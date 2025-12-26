@@ -145,11 +145,14 @@ export default function ProfessionalTemplate() {
     },
   ];
 
+  // Get verification data from props or context (will be passed from parent)
+  const verification = (window as any).__verificationData__ || null;
+
   return (
     <ResumeContainer>
       <LeftSection>
-        <ModernHeaderIntro title={intro.name} profiles={intro.profiles}>
-          <Intro intro={intro} labels={labels} />
+        <ModernHeaderIntro title={intro.name} profiles={intro.profiles} verification={verification}>
+          <Intro intro={intro} labels={labels} verification={verification} />
         </ModernHeaderIntro>
 
         {leftSections

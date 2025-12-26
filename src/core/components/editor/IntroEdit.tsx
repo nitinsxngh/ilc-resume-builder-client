@@ -6,6 +6,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import { VerificationPopup } from 'src/components/VerificationPopup';
 import { VerificationBadge } from 'src/components/VerificationBadge';
+import { resumeApiService } from 'src/services/resumeApi';
 // import { useVerification } from 'src/hooks/useVerification';
 const Wrapper = styled.div`
   margin: 8px 0;
@@ -99,6 +100,34 @@ export function IntroEdit({ METADATA, state, update }: any) {
     error: null as string | null
   });
 
+  // Load verification data from backend
+  useEffect(() => {
+    const loadVerificationData = async () => {
+      try {
+        const defaultResume = await resumeApiService.getDefaultResume();
+        if (defaultResume && defaultResume._id && defaultResume.verification) {
+          setVerificationState({
+            isVerified: defaultResume.verification.isVerified || false,
+            verifiedBy: defaultResume.verification.verifiedBy || null,
+            verificationDate: defaultResume.verification.verificationDate || null,
+            verifiedFields: defaultResume.verification.verifiedFields || [],
+            confidence: defaultResume.verification.confidence || 0,
+            isLoading: false,
+            error: null
+          });
+          // Store in window for templates to access
+          if (typeof window !== 'undefined') {
+            (window as any).__verificationData__ = defaultResume.verification;
+          }
+        }
+      } catch (error) {
+        console.error('Error loading verification data:', error);
+      }
+    };
+
+    loadVerificationData();
+  }, []);
+
   // Check for verification results from callback
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -115,6 +144,14 @@ export function IntroEdit({ METADATA, state, update }: any) {
             isLoading: false,
             error: null
           });
+          // Store in window for templates to access
+          (window as any).__verificationData__ = {
+            isVerified: result.verifiedFields?.length > 0 || false,
+            verifiedBy: result.verifiedBy,
+            verificationDate: result.verificationDate,
+            verifiedFields: result.verifiedFields || [],
+            confidence: result.confidence
+          };
           // Clear the stored result after reading
           sessionStorage.removeItem('verification_result');
         } catch (error) {
@@ -128,10 +165,10 @@ export function IntroEdit({ METADATA, state, update }: any) {
     setShowVerificationPopup(true);
   };
 
-  const handleVerificationComplete = (verifiedData: any) => {
+  const handleVerificationComplete = async (verifiedData: any) => {
     setShowVerificationPopup(false);
     if (verifiedData) {
-      setVerificationState({
+      const newState = {
         isVerified: verifiedData.verifiedFields?.length > 0 || false,
         verifiedBy: verifiedData.verifiedBy || null,
         verificationDate: verifiedData.verificationDate || null,
@@ -139,7 +176,29 @@ export function IntroEdit({ METADATA, state, update }: any) {
         confidence: verifiedData.confidence || 0,
         isLoading: false,
         error: null
-      });
+      };
+      setVerificationState(newState);
+      
+      // Store in window for templates to access
+      if (typeof window !== 'undefined') {
+        (window as any).__verificationData__ = {
+          isVerified: newState.isVerified,
+          verifiedBy: newState.verifiedBy,
+          verificationDate: newState.verificationDate,
+          verifiedFields: newState.verifiedFields,
+          confidence: newState.confidence
+        };
+      }
+      
+      // Reload verification data from backend to ensure sync
+      try {
+        const defaultResume = await resumeApiService.getDefaultResume();
+        if (defaultResume && defaultResume._id && defaultResume.verification) {
+          (window as any).__verificationData__ = defaultResume.verification;
+        }
+      } catch (error) {
+        console.error('Error reloading verification data:', error);
+      }
     }
   };
 

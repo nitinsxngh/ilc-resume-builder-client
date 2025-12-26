@@ -95,6 +95,21 @@ interface ResumeData {
   isDefault: boolean;
   lastModified?: string;
   createdAt?: string;
+  verification?: {
+    isVerified: boolean;
+    verifiedBy?: string;
+    verificationDate?: string;
+    verifiedFields?: string[];
+    confidence?: number;
+    verifiedData?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      aadhaar?: string;
+      pan?: string;
+      address?: string;
+    };
+  };
 }
 
 class ResumeApiService {
@@ -346,6 +361,49 @@ class ResumeApiService {
       return result.data!;
     } catch (error) {
       console.error('Error fetching public resume:', error);
+      throw error;
+    }
+  }
+
+  // Save verification data for a resume
+  async saveVerificationData(resumeId: string, verificationData: {
+    isVerified: boolean;
+    verifiedBy?: string;
+    verificationDate?: string;
+    verifiedFields?: string[];
+    confidence?: number;
+    verifiedData?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      aadhaar?: string;
+      pan?: string;
+      address?: string;
+    };
+  }): Promise<ResumeData> {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/resumes/${resumeId}/verification`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(verificationData),
+      });
+      
+      const result = await this.handleResponse<ResumeData>(response);
+      return result.data!;
+    } catch (error) {
+      console.error('Error saving verification data:', error);
+      throw error;
+    }
+  }
+
+  // Get verification data for a resume
+  async getVerificationData(resumeId: string): Promise<ResumeData['verification'] | null> {
+    try {
+      const resume = await this.getResumeById(resumeId);
+      return resume.verification || null;
+    } catch (error) {
+      console.error('Error fetching verification data:', error);
       throw error;
     }
   }
