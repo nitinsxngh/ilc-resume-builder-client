@@ -103,22 +103,34 @@ export function IntroEdit({ METADATA, state, update }: any) {
   // Load verification data from backend or localStorage fallback
   useEffect(() => {
     const loadVerificationData = async () => {
-      // First, try to load from localStorage as fallback
+      let localStorageData = null;
+      
+      // First, try to load from localStorage as fallback (synchronous)
       if (typeof window !== 'undefined') {
         try {
           const storedVerification = localStorage.getItem('verification_data');
           if (storedVerification) {
-            const parsed = JSON.parse(storedVerification);
-            console.log('Loaded verification data from localStorage:', parsed);
-            // Use localStorage data as initial state
-            setVerificationState(parsed);
+            localStorageData = JSON.parse(storedVerification);
+            console.log('Loaded verification data from localStorage:', localStorageData);
+            // Use localStorage data as initial state immediately
+            setVerificationState(localStorageData);
             (window as any).__verificationData__ = {
-              isVerified: parsed.isVerified || false,
-              verifiedBy: parsed.verifiedBy || null,
-              verificationDate: parsed.verificationDate || null,
-              verifiedFields: parsed.verifiedFields || [],
-              confidence: parsed.confidence || 0
+              isVerified: localStorageData.isVerified || false,
+              verifiedBy: localStorageData.verifiedBy || null,
+              verificationDate: localStorageData.verificationDate || null,
+              verifiedFields: localStorageData.verifiedFields || [],
+              confidence: localStorageData.confidence || 0
             };
+            // Dispatch event so templates update
+            window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
+              detail: {
+                isVerified: localStorageData.isVerified || false,
+                verifiedBy: localStorageData.verifiedBy || null,
+                verificationDate: localStorageData.verificationDate || null,
+                verifiedFields: localStorageData.verifiedFields || [],
+                confidence: localStorageData.confidence || 0
+              }
+            }));
           }
         } catch (storageError) {
           console.warn('Error loading verification from localStorage:', storageError);
@@ -162,7 +174,7 @@ export function IntroEdit({ METADATA, state, update }: any) {
         } else {
           console.log('No verification data found in resume');
           // Only set to unverified if we don't have localStorage data
-          if (typeof window === 'undefined' || !localStorage.getItem('verification_data')) {
+          if (!localStorageData) {
             setVerificationState({
               isVerified: false,
               verifiedBy: null,
@@ -172,15 +184,30 @@ export function IntroEdit({ METADATA, state, update }: any) {
               isLoading: false,
               error: null
             });
+          } else {
+            console.log('Keeping localStorage verification data since backend has none');
           }
         }
       } catch (error: any) {
         // Only log if it's not a network error (expected when backend is down)
-        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('NetworkError')) {
+        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('NetworkError') && !error?.message?.includes('timeout') && !error?.message?.includes('aborted')) {
           console.error('Error loading verification data:', error);
         }
         // Keep localStorage data if backend is unavailable
-        console.log('Backend unavailable, using localStorage verification data if available');
+        if (localStorageData) {
+          console.log('Backend unavailable, keeping localStorage verification data');
+        } else {
+          console.log('Backend unavailable and no localStorage data, setting to unverified');
+          setVerificationState({
+            isVerified: false,
+            verifiedBy: null,
+            verificationDate: null,
+            verifiedFields: [],
+            confidence: 0,
+            isLoading: false,
+            error: null
+          });
+        }
       }
     };
 
@@ -267,7 +294,7 @@ export function IntroEdit({ METADATA, state, update }: any) {
       if (typeof window !== 'undefined') {
         try {
           localStorage.setItem('verification_data', JSON.stringify(newState));
-          console.log('Stored verification data in localStorage as fallback');
+          console.log('Stored verification data in localStorage:', newState);
         } catch (storageError) {
           console.warn('Could not store verification data in localStorage:', storageError);
         }
