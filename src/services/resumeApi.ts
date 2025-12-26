@@ -165,40 +165,16 @@ class ResumeApiService {
   async getDefaultResume(): Promise<ResumeData | null> {
     try {
       const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/resumes/default`, {
+        method: 'GET',
+        headers,
+      });
       
-      // Add timeout to prevent hanging requests
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
-      try {
-        const response = await fetch(`${API_BASE_URL}/resumes/default`, {
-          method: 'GET',
-          headers,
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeoutId);
-        const result = await this.handleResponse<ResumeData>(response);
-        return result.data || null;
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        if (fetchError.name === 'AbortError') {
-          console.warn('Request to get default resume timed out');
-          return null;
-        }
-        throw fetchError;
-      }
-    } catch (error: any) {
-      // Don't log network errors as errors - they're expected when backend is down
-      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
-        console.warn('Backend API unavailable, continuing without resume data');
-        return null;
-      }
-      // Only log unexpected errors
-      if (!error.message?.includes('timeout') && !error.message?.includes('aborted')) {
-        console.error('Error fetching default resume:', error);
-      }
-      return null; // Return null instead of throwing to allow app to continue
+      const result = await this.handleResponse<ResumeData>(response);
+      return result.data || null;
+    } catch (error) {
+      console.error('Error fetching default resume:', error);
+      throw error;
     }
   }
 
