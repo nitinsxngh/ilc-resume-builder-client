@@ -106,26 +106,55 @@ export function IntroEdit({ METADATA, state, update }: any) {
       try {
         const defaultResume = await resumeApiService.getDefaultResume();
         if (defaultResume && defaultResume._id && defaultResume.verification) {
+          const verification = defaultResume.verification;
+          console.log('Loaded verification data from backend:', verification);
+          
+          const newState = {
+            isVerified: verification.isVerified || false,
+            verifiedBy: verification.verifiedBy || null,
+            verificationDate: verification.verificationDate || null,
+            verifiedFields: verification.verifiedFields || [],
+            confidence: verification.confidence || 0,
+            isLoading: false,
+            error: null
+          };
+          
+          console.log('Setting verification state from backend:', newState);
+          setVerificationState(newState);
+          
+          // Store in window for templates to access
+          if (typeof window !== 'undefined') {
+            (window as any).__verificationData__ = verification;
+            // Dispatch custom event to notify templates
+            window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
+              detail: verification 
+            }));
+          }
+        } else {
+          console.log('No verification data found in resume');
+          // Ensure state is set to unverified if no data
           setVerificationState({
-            isVerified: defaultResume.verification.isVerified || false,
-            verifiedBy: defaultResume.verification.verifiedBy || null,
-            verificationDate: defaultResume.verification.verificationDate || null,
-            verifiedFields: defaultResume.verification.verifiedFields || [],
-            confidence: defaultResume.verification.confidence || 0,
+            isVerified: false,
+            verifiedBy: null,
+            verificationDate: null,
+            verifiedFields: [],
+            confidence: 0,
             isLoading: false,
             error: null
           });
-          // Store in window for templates to access
-          if (typeof window !== 'undefined') {
-            (window as any).__verificationData__ = defaultResume.verification;
-            // Dispatch custom event to notify templates
-            window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
-              detail: defaultResume.verification 
-            }));
-          }
         }
       } catch (error) {
         console.error('Error loading verification data:', error);
+        // Set to unverified on error
+        setVerificationState({
+          isVerified: false,
+          verifiedBy: null,
+          verificationDate: null,
+          verifiedFields: [],
+          confidence: 0,
+          isLoading: false,
+          error: null
+        });
       }
     };
 
@@ -171,31 +200,40 @@ export function IntroEdit({ METADATA, state, update }: any) {
 
   const handleVerificationComplete = async (verifiedData: any) => {
     setShowVerificationPopup(false);
+    console.log('handleVerificationComplete called with:', verifiedData);
+    
     if (verifiedData) {
+      // Handle both direct data and nested data structure
+      const data = verifiedData.data || verifiedData;
+      const verifiedFields = data.verifiedFields || [];
+      const isVerified = verifiedFields.length > 0;
+      
       const newState = {
-        isVerified: verifiedData.verifiedFields?.length > 0 || false,
-        verifiedBy: verifiedData.verifiedBy || null,
-        verificationDate: verifiedData.verificationDate || null,
-        verifiedFields: verifiedData.verifiedFields || [],
-        confidence: verifiedData.confidence || 0,
+        isVerified: isVerified,
+        verifiedBy: data.verifiedBy || null,
+        verificationDate: data.verificationDate || null,
+        verifiedFields: verifiedFields,
+        confidence: data.confidence || 0,
         isLoading: false,
         error: null
       };
+      
+      console.log('Setting verification state:', newState);
       setVerificationState(newState);
       
       // Store in window for templates to access
       if (typeof window !== 'undefined') {
-        const verificationData = {
+        const verificationDataForWindow = {
           isVerified: newState.isVerified,
           verifiedBy: newState.verifiedBy,
           verificationDate: newState.verificationDate,
           verifiedFields: newState.verifiedFields,
           confidence: newState.confidence
         };
-        (window as any).__verificationData__ = verificationData;
+        (window as any).__verificationData__ = verificationDataForWindow;
         // Dispatch custom event to notify templates
         window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
-          detail: verificationData 
+          detail: verificationDataForWindow 
         }));
       }
       
@@ -203,10 +241,24 @@ export function IntroEdit({ METADATA, state, update }: any) {
       try {
         const defaultResume = await resumeApiService.getDefaultResume();
         if (defaultResume && defaultResume._id && defaultResume.verification) {
-          (window as any).__verificationData__ = defaultResume.verification;
+          const backendVerification = defaultResume.verification;
+          console.log('Reloaded verification from backend:', backendVerification);
+          
+          // Update state with backend data
+          setVerificationState({
+            isVerified: backendVerification.isVerified || false,
+            verifiedBy: backendVerification.verifiedBy || null,
+            verificationDate: backendVerification.verificationDate || null,
+            verifiedFields: backendVerification.verifiedFields || [],
+            confidence: backendVerification.confidence || 0,
+            isLoading: false,
+            error: null
+          });
+          
+          (window as any).__verificationData__ = backendVerification;
           // Dispatch custom event to notify templates
           window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
-            detail: defaultResume.verification 
+            detail: backendVerification 
           }));
         }
       } catch (error) {
