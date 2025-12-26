@@ -19,7 +19,8 @@ export default async function handler(
       return res.status(400).json({ error: 'Missing access token' });
     }
 
-    const userinfoUrl = process.env.MERIPAHACHAN_USERINFO_URL || 'https://digilocker.meripehchaan.gov.in/public/oauth2/1/userinfo';
+    // When openid is enabled, use OpenID protocol endpoint (oauth2/2) instead of regular OAuth (oauth2/1)
+    const userinfoUrl = process.env.MERIPAHACHAN_USERINFO_URL || 'https://digilocker.meripehchaan.gov.in/public/oauth2/2/userinfo';
 
     console.log('Fetching user profile server-side from:', userinfoUrl);
 

@@ -71,8 +71,8 @@ class VerificationService {
     };
 
     // MeriPahachan (DigiLocker OIDC) configuration
-    // Using the correct MeriPehchaan OIDC endpoints
-    const baseUrl = 'https://digilocker.meripehchaan.gov.in/public/oauth2/1';
+    // When openid is enabled, use OpenID protocol endpoints (oauth2/2) instead of regular OAuth (oauth2/1)
+    const baseUrl = 'https://digilocker.meripehchaan.gov.in/public/oauth2/2';
     
     // IMPORTANT: Redirect URI must EXACTLY match what's registered in MeriPehchaan dashboard
     // Default to production URL, but allow override via environment variable

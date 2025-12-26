@@ -35,7 +35,8 @@ export default async function handler(
     const clientId = process.env.NEXT_PUBLIC_MERIPAHACHAN_CLIENT_ID || process.env.MERIPAHACHAN_CLIENT_ID;
     const clientSecret = process.env.MERIPAHACHAN_CLIENT_SECRET;
     const redirectUri = process.env.NEXT_PUBLIC_MERIPAHACHAN_REDIRECT_URI || process.env.MERIPAHACHAN_REDIRECT_URI;
-    const tokenUrl = process.env.MERIPAHACHAN_TOKEN_URL || 'https://digilocker.meripehchaan.gov.in/public/oauth2/1/token';
+    // When openid is enabled, use OpenID protocol endpoint (oauth2/2) instead of regular OAuth (oauth2/1)
+    const tokenUrl = process.env.MERIPAHACHAN_TOKEN_URL || 'https://digilocker.meripehchaan.gov.in/public/oauth2/2/token';
 
     console.log('Token API - Environment check:', {
       hasClientId: !!clientId,
