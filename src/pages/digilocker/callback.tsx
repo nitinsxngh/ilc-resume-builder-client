@@ -113,12 +113,12 @@ export default function DigiLockerCallbackPage() {
                 verifiedFields: result.data.verifiedFields || [],
                 confidence: result.data.confidence,
                 verifiedData: {
-                  name: result.data.verifiedName || result.data.rawData?.name || '',
-                  email: result.data.verifiedEmail || result.data.rawData?.email || '',
-                  phone: result.data.verifiedPhone || result.data.rawData?.phone || '',
-                  aadhaar: result.data.verifiedAadhaar || result.data.rawData?.aadhaar || '',
-                  pan: result.data.verifiedPan || result.data.rawData?.pan || '',
-                  address: result.data.verifiedAddress || result.data.rawData?.address || ''
+                  name: result.data.rawData?.verifiedName || '',
+                  email: result.data.rawData?.verifiedEmail || '',
+                  phone: result.data.rawData?.verifiedPhone || '',
+                  aadhaar: result.data.rawData?.verifiedAadhaar || '',
+                  pan: result.data.rawData?.verifiedPan || '',
+                  address: result.data.rawData?.verifiedAddress || ''
                 }
               });
               console.log('Verification data saved to backend successfully');
