@@ -113,24 +113,26 @@ export function IntroEdit({ METADATA, state, update }: any) {
             localStorageData = JSON.parse(storedVerification);
             console.log('Loaded verification data from localStorage:', localStorageData);
             // Use localStorage data as initial state immediately
-            setVerificationState(localStorageData);
-            (window as any).__verificationData__ = {
-              isVerified: localStorageData.isVerified || false,
-              verifiedBy: localStorageData.verifiedBy || null,
-              verificationDate: localStorageData.verificationDate || null,
-              verifiedFields: localStorageData.verifiedFields || [],
-              confidence: localStorageData.confidence || 0
-            };
-            // Dispatch event so templates update
-            window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
-              detail: {
+            if (localStorageData) {
+              setVerificationState(localStorageData);
+              (window as any).__verificationData__ = {
                 isVerified: localStorageData.isVerified || false,
                 verifiedBy: localStorageData.verifiedBy || null,
                 verificationDate: localStorageData.verificationDate || null,
                 verifiedFields: localStorageData.verifiedFields || [],
                 confidence: localStorageData.confidence || 0
-              }
-            }));
+              };
+              // Dispatch event so templates update
+              window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
+                detail: {
+                  isVerified: localStorageData.isVerified || false,
+                  verifiedBy: localStorageData.verifiedBy || null,
+                  verificationDate: localStorageData.verificationDate || null,
+                  verifiedFields: localStorageData.verifiedFields || [],
+                  confidence: localStorageData.confidence || 0
+                }
+              }));
+            }
           }
         } catch (storageError) {
           console.warn('Error loading verification from localStorage:', storageError);
