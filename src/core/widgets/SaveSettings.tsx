@@ -150,14 +150,11 @@ export function SaveSettings() {
     } catch (error: any) {
       // Only show error if it's not a network error (expected when backend is down)
       if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('NetworkError')) {
+        console.error('Error loading resume:', error);
         message.error('Error loading resume: ' + (error.message || 'Unknown error'));
       } else {
         message.warning('Backend API unavailable. Please check your connection.');
       }
-      
-    } catch (error) {
-      console.error('Error loading resume:', error);
-      message.error('Failed to load resume. Please try again.');
     } finally {
       setIsLoading(false);
     }
