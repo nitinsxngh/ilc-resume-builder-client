@@ -1,4 +1,4 @@
-import React, { Fragment, useState, useEffect } from 'react';
+import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { Input as AntInput, Button, Space, Divider } from 'antd';
 import { MarkDownField } from 'src/core/widgets/MarkdownField';
@@ -101,68 +101,138 @@ export function IntroEdit({ METADATA, state, update }: any) {
   });
 
   // Load verification data from backend
+  const loadVerificationData = useCallback(async () => {
+    try {
+      const defaultResume = await resumeApiService.getDefaultResume();
+      if (defaultResume && defaultResume._id && defaultResume.verification) {
+        setVerificationState({
+          isVerified: defaultResume.verification.isVerified || false,
+          verifiedBy: defaultResume.verification.verifiedBy || null,
+          verificationDate: defaultResume.verification.verificationDate || null,
+          verifiedFields: defaultResume.verification.verifiedFields || [],
+          confidence: defaultResume.verification.confidence || 0,
+          isLoading: false,
+          error: null
+        });
+        // Store in window for templates to access
+        if (typeof window !== 'undefined') {
+          (window as any).__verificationData__ = defaultResume.verification;
+          // Dispatch custom event to notify templates
+          window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
+            detail: defaultResume.verification 
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading verification data:', error);
+    }
+  }, []);
+
   useEffect(() => {
-    const loadVerificationData = async () => {
-      try {
-        const defaultResume = await resumeApiService.getDefaultResume();
-        if (defaultResume && defaultResume._id && defaultResume.verification) {
-          setVerificationState({
-            isVerified: defaultResume.verification.isVerified || false,
-            verifiedBy: defaultResume.verification.verifiedBy || null,
-            verificationDate: defaultResume.verification.verificationDate || null,
-            verifiedFields: defaultResume.verification.verifiedFields || [],
-            confidence: defaultResume.verification.confidence || 0,
-            isLoading: false,
-            error: null
-          });
-          // Store in window for templates to access
-          if (typeof window !== 'undefined') {
-            (window as any).__verificationData__ = defaultResume.verification;
-            // Dispatch custom event to notify templates
-            window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
-              detail: defaultResume.verification 
-            }));
+    loadVerificationData();
+  }, [loadVerificationData]);
+
+  // Reload verification data when window regains focus (e.g., returning from callback)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handleFocus = () => {
+        // Small delay to ensure backend has processed the verification
+        setTimeout(() => {
+          loadVerificationData();
+        }, 500);
+      };
+
+      window.addEventListener('focus', handleFocus);
+      return () => {
+        window.removeEventListener('focus', handleFocus);
+      };
+    }
+  }, [loadVerificationData]);
+
+  // Check for verification results from callback and reload from backend
+  useEffect(() => {
+    const checkAndReloadVerification = async () => {
+      if (typeof window !== 'undefined') {
+        const storedResult = sessionStorage.getItem('verification_result');
+        if (storedResult) {
+          try {
+            const result = JSON.parse(storedResult);
+            // Update local state immediately
+            setVerificationState({
+              isVerified: result.verifiedFields?.length > 0 || false,
+              verifiedBy: result.verifiedBy || null,
+              verificationDate: result.verificationDate || null,
+              verifiedFields: result.verifiedFields || [],
+              confidence: result.confidence || 0,
+              isLoading: false,
+              error: null
+            });
+            // Store in window for templates to access
+            (window as any).__verificationData__ = {
+              isVerified: result.verifiedFields?.length > 0 || false,
+              verifiedBy: result.verifiedBy,
+              verificationDate: result.verificationDate,
+              verifiedFields: result.verifiedFields || [],
+              confidence: result.confidence
+            };
+            // Clear the stored result after reading
+            sessionStorage.removeItem('verification_result');
+            
+            // Reload verification data from backend to ensure sync
+            try {
+              const defaultResume = await resumeApiService.getDefaultResume();
+              if (defaultResume && defaultResume._id && defaultResume.verification) {
+                setVerificationState({
+                  isVerified: defaultResume.verification.isVerified || false,
+                  verifiedBy: defaultResume.verification.verifiedBy || null,
+                  verificationDate: defaultResume.verification.verificationDate || null,
+                  verifiedFields: defaultResume.verification.verifiedFields || [],
+                  confidence: defaultResume.verification.confidence || 0,
+                  isLoading: false,
+                  error: null
+                });
+                // Update window object with backend data
+                (window as any).__verificationData__ = defaultResume.verification;
+                // Dispatch custom event to notify templates
+                window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
+                  detail: defaultResume.verification 
+                }));
+              }
+            } catch (error) {
+              console.error('Error reloading verification data from backend:', error);
+            }
+          } catch (error) {
+            console.error('Error parsing verification result:', error);
+          }
+        } else {
+          // Even if no stored result, reload from backend to ensure we have latest data
+          try {
+            const defaultResume = await resumeApiService.getDefaultResume();
+            if (defaultResume && defaultResume._id && defaultResume.verification) {
+              setVerificationState({
+                isVerified: defaultResume.verification.isVerified || false,
+                verifiedBy: defaultResume.verification.verifiedBy || null,
+                verificationDate: defaultResume.verification.verificationDate || null,
+                verifiedFields: defaultResume.verification.verifiedFields || [],
+                confidence: defaultResume.verification.confidence || 0,
+                isLoading: false,
+                error: null
+              });
+              // Update window object with backend data
+              (window as any).__verificationData__ = defaultResume.verification;
+              // Dispatch custom event to notify templates
+              window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
+                detail: defaultResume.verification 
+              }));
+            }
+          } catch (error) {
+            console.error('Error loading verification data from backend:', error);
           }
         }
-      } catch (error) {
-        console.error('Error loading verification data:', error);
       }
     };
 
-    loadVerificationData();
-  }, []);
-
-  // Check for verification results from callback
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedResult = sessionStorage.getItem('verification_result');
-      if (storedResult) {
-        try {
-          const result = JSON.parse(storedResult);
-          setVerificationState({
-            isVerified: result.verifiedFields?.length > 0 || false,
-            verifiedBy: result.verifiedBy || null,
-            verificationDate: result.verificationDate || null,
-            verifiedFields: result.verifiedFields || [],
-            confidence: result.confidence || 0,
-            isLoading: false,
-            error: null
-          });
-          // Store in window for templates to access
-          (window as any).__verificationData__ = {
-            isVerified: result.verifiedFields?.length > 0 || false,
-            verifiedBy: result.verifiedBy,
-            verificationDate: result.verificationDate,
-            verifiedFields: result.verifiedFields || [],
-            confidence: result.confidence
-          };
-          // Clear the stored result after reading
-          sessionStorage.removeItem('verification_result');
-        } catch (error) {
-          console.error('Error parsing verification result:', error);
-        }
-      }
-    }
+    checkAndReloadVerification();
   }, []);
 
   const handleVerifyClick = () => {

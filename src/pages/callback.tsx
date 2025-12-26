@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { Spin, message } from 'antd';
 import styled from 'styled-components';
 import { verificationService } from 'src/services/verificationService';
+import { resumeApiService } from 'src/services/resumeApi';
 
 const CallbackContainer = styled.div`
   display: flex;
@@ -90,9 +91,35 @@ export default function CallbackPage() {
           setMessageText(result.message || 'Verification completed successfully!');
           message.success('Identity verified successfully!');
           
-          // Store verification result
+          // Store verification result in sessionStorage
           if (typeof window !== 'undefined') {
             sessionStorage.setItem('verification_result', JSON.stringify(result.data));
+          }
+          
+          // Save verification data to backend
+          try {
+            const defaultResume = await resumeApiService.getDefaultResume();
+            if (defaultResume && defaultResume._id) {
+              await resumeApiService.saveVerificationData(defaultResume._id, {
+                isVerified: true,
+                verifiedBy: result.data.verifiedBy,
+                verificationDate: result.data.verificationDate,
+                verifiedFields: result.data.verifiedFields || [],
+                confidence: result.data.confidence,
+                verifiedData: {
+                  name: result.data.verifiedName || result.data.rawData?.name || '',
+                  email: result.data.verifiedEmail || result.data.rawData?.email || '',
+                  phone: result.data.verifiedPhone || result.data.rawData?.phone || '',
+                  aadhaar: result.data.verifiedAadhaar || result.data.rawData?.aadhaar || '',
+                  pan: result.data.verifiedPan || result.data.rawData?.pan || '',
+                  address: result.data.verifiedAddress || result.data.rawData?.address || ''
+                }
+              });
+              console.log('Verification data saved to backend successfully');
+            }
+          } catch (error) {
+            console.error('Error saving verification data to backend:', error);
+            // Don't fail the verification if backend save fails, but log the error
           }
           
           // Redirect to editor after 2 seconds
