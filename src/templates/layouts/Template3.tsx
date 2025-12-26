@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import shallow from 'zustand/shallow';
 
@@ -89,8 +89,33 @@ export default function Template3() {
   // Safety check: ensure companies is an array
   const safeCompanies = Array.isArray(companies) ? companies : [];
   
-  // Get verification data from window (set by IntroEdit)
-  const verification = (typeof window !== 'undefined' && (window as any).__verificationData__) || null;
+  // Get verification data and make it reactive
+  const [verification, setVerification] = useState<any>(null);
+  
+  useEffect(() => {
+    // Initial load
+    const loadVerification = () => {
+      const data = (typeof window !== 'undefined' && (window as any).__verificationData__) || null;
+      setVerification(data);
+    };
+    
+    loadVerification();
+    
+    // Listen for verification data updates
+    const handleVerificationUpdate = (event: any) => {
+      setVerification(event.detail || ((typeof window !== 'undefined' && (window as any).__verificationData__) || null));
+    };
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener('verificationDataUpdated', handleVerificationUpdate);
+    }
+    
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('verificationDataUpdated', handleVerificationUpdate);
+      }
+    };
+  }, []);
 
   return (
     <ResumeContainer>

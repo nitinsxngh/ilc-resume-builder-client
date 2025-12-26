@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import shallow from 'zustand/shallow';
 import styled from 'styled-components';
 import { Flex, FlexCol } from 'src/styles/styles';
@@ -160,8 +160,29 @@ export default function ProfessionalTemplate() {
     ];
   }
 
-  // Get verification data from props or context (will be passed from parent)
-  const verification = (window as any).__verificationData__ || null;
+  // Get verification data and make it reactive
+  const [verification, setVerification] = useState<any>(null);
+  
+  useEffect(() => {
+    // Initial load
+    const loadVerification = () => {
+      const data = (window as any).__verificationData__ || null;
+      setVerification(data);
+    };
+    
+    loadVerification();
+    
+    // Listen for verification data updates
+    const handleVerificationUpdate = (event: any) => {
+      setVerification(event.detail || (window as any).__verificationData__ || null);
+    };
+    
+    window.addEventListener('verificationDataUpdated', handleVerificationUpdate);
+    
+    return () => {
+      window.removeEventListener('verificationDataUpdated', handleVerificationUpdate);
+    };
+  }, []);
 
   return (
     <ResumeContainer>

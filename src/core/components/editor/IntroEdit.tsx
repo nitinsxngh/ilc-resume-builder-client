@@ -118,6 +118,10 @@ export function IntroEdit({ METADATA, state, update }: any) {
           // Store in window for templates to access
           if (typeof window !== 'undefined') {
             (window as any).__verificationData__ = defaultResume.verification;
+            // Dispatch custom event to notify templates
+            window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
+              detail: defaultResume.verification 
+            }));
           }
         }
       } catch (error) {
@@ -181,13 +185,18 @@ export function IntroEdit({ METADATA, state, update }: any) {
       
       // Store in window for templates to access
       if (typeof window !== 'undefined') {
-        (window as any).__verificationData__ = {
+        const verificationData = {
           isVerified: newState.isVerified,
           verifiedBy: newState.verifiedBy,
           verificationDate: newState.verificationDate,
           verifiedFields: newState.verifiedFields,
           confidence: newState.confidence
         };
+        (window as any).__verificationData__ = verificationData;
+        // Dispatch custom event to notify templates
+        window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
+          detail: verificationData 
+        }));
       }
       
       // Reload verification data from backend to ensure sync
@@ -195,6 +204,10 @@ export function IntroEdit({ METADATA, state, update }: any) {
         const defaultResume = await resumeApiService.getDefaultResume();
         if (defaultResume && defaultResume._id && defaultResume.verification) {
           (window as any).__verificationData__ = defaultResume.verification;
+          // Dispatch custom event to notify templates
+          window.dispatchEvent(new CustomEvent('verificationDataUpdated', { 
+            detail: defaultResume.verification 
+          }));
         }
       } catch (error) {
         console.error('Error reloading verification data:', error);
