@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Modal, Button, Steps, Card, Typography, Alert, Spin, message, Form, Input, Select, Upload } from 'antd';
+import { Modal, Button, Steps, Card, Typography, Alert, Spin, message, Form, Input } from 'antd';
 import { resumeApiService } from 'src/services/resumeApi';
 import { 
   CheckCircleOutlined, 
   CloseCircleOutlined, 
-  IdcardOutlined, 
   SafetyCertificateOutlined,
-  BankOutlined,
-  FileTextOutlined,
   LoadingOutlined,
-  UploadOutlined,
   UserOutlined,
   PhoneOutlined,
   MailOutlined,
@@ -19,7 +15,6 @@ import {
 
 const { Step } = Steps;
 const { Title, Text, Paragraph } = Typography;
-const { Option } = Select;
 
 const VerificationContainer = styled.div`
   .verification-popup {
@@ -160,26 +155,6 @@ const FormSection = styled.div`
   }
 `;
 
-const DocumentUpload = styled.div`
-  .upload-area {
-    border: 2px dashed #555;
-    border-radius: 8px;
-    padding: 24px;
-    text-align: center;
-    background: #2a2a2a;
-    transition: all 0.3s ease;
-    
-    &:hover {
-      border-color: #1890ff;
-      background: #333;
-    }
-  }
-  
-  .upload-text {
-    color: #ccc;
-    margin-top: 8px;
-  }
-`;
 
 const StatusIndicator = styled.div<{ status: 'pending' | 'verifying' | 'verified' | 'failed' }>`
   display: flex;
@@ -251,33 +226,6 @@ const verificationServices: VerificationService[] = [
     description: 'Verify using Aadhaar and government documents',
     apiEndpoint: 'https://api.digilocker.gov.in',
     supportedDocuments: ['Aadhaar', 'PAN', 'Driving License', 'Voter ID'],
-    isAvailable: true
-  },
-  {
-    id: 'manual-verification',
-    name: 'Manual Verification',
-    icon: <FileTextOutlined />,
-    description: 'Upload documents for manual verification',
-    apiEndpoint: 'internal',
-    supportedDocuments: ['Any Government ID', 'Educational Certificates'],
-    isAvailable: true
-  },
-  {
-    id: 'phone-verification',
-    name: 'Phone Verification',
-    icon: <PhoneOutlined />,
-    description: 'Verify phone number with OTP',
-    apiEndpoint: 'internal',
-    supportedDocuments: ['Phone Number'],
-    isAvailable: true
-  },
-  {
-    id: 'email-verification',
-    name: 'Email Verification',
-    icon: <MailOutlined />,
-    description: 'Verify email address with OTP',
-    apiEndpoint: 'internal',
-    supportedDocuments: ['Email Address'],
     isAvailable: true
   }
 ];
@@ -454,32 +402,6 @@ export const VerificationPopup: React.FC<VerificationPopupProps> = ({
           message.error(result.error || 'Verification failed. Please try again.');
           setIsLoading(false);
         }
-      } else {
-        // For other services, use simulation
-        const result = await simulateVerification(selectedService, dataToUse);
-        
-        if (result.success) {
-          setVerificationStatus('verified');
-          setVerificationResults(result.data);
-          setCurrentStep(3);
-          message.success('Verification completed successfully!');
-          // Merge verification metadata with user data to create complete VerificationData
-          const completeVerificationData: VerificationData = {
-            name: dataToUse.name || userData.name || '',
-            email: dataToUse.email || userData.email || '',
-            phone: dataToUse.phone || userData.phone || '',
-            aadhaar: dataToUse.aadhaar || userData.aadhaar,
-            pan: dataToUse.pan || userData.pan,
-            address: dataToUse.address || userData.address
-          };
-          // Add verification metadata (callbacks accept any, so this is safe)
-          Object.assign(completeVerificationData, result.data);
-          onVerificationComplete(completeVerificationData as any);
-        } else {
-          setVerificationStatus('failed');
-          message.error('Verification failed. Please try again.');
-        }
-        setIsLoading(false);
       }
     } catch (error: any) {
       console.error('Verification error:', error);
@@ -489,60 +411,6 @@ export const VerificationPopup: React.FC<VerificationPopupProps> = ({
     }
   };
 
-  const simulateVerification = async (serviceId: string, data: VerificationData): Promise<any> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
-    // Mock verification logic based on service
-    switch (serviceId) {
-      case 'digilocker':
-        return {
-          success: true,
-          data: {
-            ...data,
-            verifiedBy: 'DigiLocker',
-            verificationDate: new Date().toISOString(),
-            verifiedFields: ['name', 'email', 'phone', 'aadhaar'],
-            confidence: 0.95
-          }
-        };
-      case 'manual-verification':
-        return {
-          success: true,
-          data: {
-            ...data,
-            verifiedBy: 'Manual Verification',
-            verificationDate: new Date().toISOString(),
-            verifiedFields: ['name', 'email', 'document'],
-            confidence: 0.85
-          }
-        };
-      case 'phone-verification':
-        return {
-          success: true,
-          data: {
-            ...data,
-            verifiedBy: 'Phone OTP Verification',
-            verificationDate: new Date().toISOString(),
-            verifiedFields: ['name', 'phone'],
-            confidence: 0.90
-          }
-        };
-      case 'email-verification':
-        return {
-          success: true,
-          data: {
-            ...data,
-            verifiedBy: 'Email Verification',
-            verificationDate: new Date().toISOString(),
-            verifiedFields: ['name', 'email'],
-            confidence: 0.88
-          }
-        };
-      default:
-        return { success: false, error: 'Service not available' };
-    }
-  };
 
   const handleConfirmVerification = () => {
     if (verificationResults) {
@@ -690,132 +558,6 @@ export const VerificationPopup: React.FC<VerificationPopupProps> = ({
             </FormSection>
           )}
 
-          {selectedService === 'manual-verification' && (
-            <FormSection>
-              <div className="section-title">
-                <FileTextOutlined />
-                Document Upload
-              </div>
-              
-              <Form.Item
-                label="Document Type"
-                name="documentType"
-                rules={[{ required: true, message: 'Please select document type' }]}
-              >
-                <Select placeholder="Select document type">
-                  <Option value="aadhaar">Aadhaar Card</Option>
-                  <Option value="pan">PAN Card</Option>
-                  <Option value="passport">Passport</Option>
-                  <Option value="driving_license">Driving License</Option>
-                  <Option value="voter_id">Voter ID</Option>
-                  <Option value="other">Other Government ID</Option>
-                </Select>
-              </Form.Item>
-
-              <Form.Item
-                label="Upload Document"
-                name="document"
-                rules={[{ required: true, message: 'Please upload a document' }]}
-              >
-                <DocumentUpload>
-                  <Upload.Dragger
-                    name="document"
-                    multiple={false}
-                    beforeUpload={() => false}
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    showUploadList={false}
-                  >
-                    <div className="upload-area">
-                      <UploadOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
-                      <div className="upload-text">
-                        <p>Click or drag file to this area to upload</p>
-                        <p>Support for PDF, JPG, PNG files</p>
-                      </div>
-                    </div>
-                  </Upload.Dragger>
-                </DocumentUpload>
-              </Form.Item>
-            </FormSection>
-          )}
-
-          {selectedService === 'phone-verification' && (
-            <FormSection>
-              <div className="section-title">
-                <PhoneOutlined />
-                Phone Verification
-              </div>
-              
-              <Form.Item
-                label="Phone Number"
-                name="phone"
-                rules={[
-                  { required: true, message: 'Please enter your phone number' },
-                  { pattern: /^[6-9]\d{9}$/, message: 'Please enter a valid 10-digit phone number' }
-                ]}
-              >
-                <Input 
-                  prefix={<PhoneOutlined />} 
-                  placeholder="Enter your 10-digit phone number" 
-                  maxLength={10}
-                />
-              </Form.Item>
-              
-              <div style={{ 
-                padding: '12px', 
-                background: '#333', 
-                borderRadius: '6px', 
-                marginBottom: '16px',
-                color: '#ccc',
-                fontSize: '14px'
-              }}>
-                <strong>How it works:</strong>
-                <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
-                  <li>We'll send an OTP to your phone number</li>
-                  <li>Enter the OTP to verify your phone number</li>
-                  <li>This helps confirm your identity</li>
-                </ul>
-              </div>
-            </FormSection>
-          )}
-
-          {selectedService === 'email-verification' && (
-            <FormSection>
-              <div className="section-title">
-                <MailOutlined />
-                Email Verification
-              </div>
-              
-              <Form.Item
-                label="Email Address"
-                name="email"
-                rules={[
-                  { required: true, message: 'Please enter your email address' },
-                  { type: 'email', message: 'Please enter a valid email address' }
-                ]}
-              >
-                <Input 
-                  prefix={<MailOutlined />} 
-                  placeholder="Enter your email address" 
-                />
-              </Form.Item>
-              
-              <div style={{ 
-                padding: '12px', 
-                background: '#333', 
-                borderRadius: '6px', 
-                marginBottom: '16px',
-                color: '#ccc',
-                fontSize: '14px'
-              }}>
-                <strong>How it works:</strong>
-                <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
-                  <li>We'll send a verification link to your email</li>
-                  <li>Click the link to verify your email address</li>
-                  <li>This helps confirm your identity</li>
-                </ul>
-              </div>
-            </FormSection>
-          )}
 
           <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
             <Button onClick={() => setCurrentStep(0)} style={{ flex: 1 }}>
@@ -852,21 +594,6 @@ export const VerificationPopup: React.FC<VerificationPopupProps> = ({
           {verificationData?.aadhaar && (
             <div style={{ marginBottom: '16px' }}>
               <Text strong style={{ color: '#fff' }}>Aadhaar:</Text> {verificationData.aadhaar}
-            </div>
-          )}
-          {verificationData?.documentType && (
-            <div style={{ marginBottom: '16px' }}>
-              <Text strong style={{ color: '#fff' }}>Document Type:</Text> {verificationData.documentType}
-            </div>
-          )}
-          {selectedService === 'phone-verification' && (
-            <div style={{ marginBottom: '16px' }}>
-              <Text strong style={{ color: '#fff' }}>Verification Method:</Text> Phone OTP
-            </div>
-          )}
-          {selectedService === 'email-verification' && (
-            <div style={{ marginBottom: '16px' }}>
-              <Text strong style={{ color: '#fff' }}>Verification Method:</Text> Email Link
             </div>
           )}
         </VerificationCard>
@@ -964,21 +691,6 @@ export const VerificationPopup: React.FC<VerificationPopupProps> = ({
           {verificationData.aadhaar && (
             <div style={{ marginBottom: '12px' }}>
               <Text strong style={{ color: '#fff' }}>Aadhaar:</Text> {verificationData.aadhaar}
-            </div>
-          )}
-          {verificationData.documentType && (
-            <div style={{ marginBottom: '12px' }}>
-              <Text strong style={{ color: '#fff' }}>Document Type:</Text> {verificationData.documentType}
-            </div>
-          )}
-          {selectedService === 'phone-verification' && (
-            <div style={{ marginBottom: '12px' }}>
-              <Text strong style={{ color: '#fff' }}>Verification Method:</Text> Phone OTP Verification
-            </div>
-          )}
-          {selectedService === 'email-verification' && (
-            <div style={{ marginBottom: '12px' }}>
-              <Text strong style={{ color: '#fff' }}>Verification Method:</Text> Email Link Verification
             </div>
           )}
         </VerificationCard>

@@ -69,6 +69,7 @@ export function SaveSettings() {
     if (currentUser && !isLoading) {
       load();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
   async function save() {
@@ -92,6 +93,8 @@ export function SaveSettings() {
         labels: { labels: [] }, // You can add labels if needed
       };
 
+      console.log('Attempting to save resume data:', resumeData);
+      
       // Save to backend
       const savedResume = await resumeApiService.syncLocalData(resumeData);
       
@@ -102,9 +105,25 @@ export function SaveSettings() {
       // Reset saved state after 3 seconds
       setTimeout(() => setIsSaved(false), 3000);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving resume:', error);
-      message.error('Failed to save resume. Please try again.');
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to save resume. Please try again.';
+      
+      if (error?.message) {
+        if (error.message.includes('authentication') || error.message.includes('token') || error.message.includes('No authenticated user')) {
+          errorMessage = 'Authentication failed. Please login again.';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('HTTP error')) {
+          errorMessage = `Server error: ${error.message}. Please try again later.`;
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
+      message.error(errorMessage, 5);
     } finally {
       setIsSaving(false);
     }
@@ -148,9 +167,25 @@ export function SaveSettings() {
         message.info('No saved resume found');
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading resume:', error);
-      message.error('Failed to load resume. Please try again.');
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to load resume. Please try again.';
+      
+      if (error?.message) {
+        if (error.message.includes('authentication') || error.message.includes('token') || error.message.includes('No authenticated user')) {
+          errorMessage = 'Authentication failed. Please login again.';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('HTTP error')) {
+          errorMessage = `Server error: ${error.message}. Please try again later.`;
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
+      message.error(errorMessage, 5);
     } finally {
       setIsLoading(false);
     }

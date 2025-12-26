@@ -135,10 +135,21 @@ class ResumeApiService {
   }
 
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      // If response is not JSON, get text instead
+      const text = await response.text();
+      throw new Error(`Server error (${response.status}): ${text || response.statusText}`);
+    }
     
     if (!response.ok) {
-      throw new Error(data.error || `HTTP error! status: ${response.status}`);
+      const errorMessage = data?.error || data?.message || `HTTP error! status: ${response.status}`;
+      const error = new Error(errorMessage);
+      (error as any).status = response.status;
+      (error as any).data = data;
+      throw error;
     }
     
     return data;
