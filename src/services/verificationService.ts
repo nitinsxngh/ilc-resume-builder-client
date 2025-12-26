@@ -373,8 +373,8 @@ class VerificationService {
       // Extract email (JWT: email, Userinfo: email or email_address)
       const verifiedEmail = profileData.email || profileData.email_address || '';
       
-      // Extract phone (JWT: phone_number, Userinfo: phone or phone_number)
-      const verifiedPhone = profileData.phone_number || profileData.phone || '';
+      // Extract phone (JWT: phone_number, Userinfo: phone, phone_number, or mobile)
+      const verifiedPhone = profileData.phone_number || profileData.phone || profileData.mobile || '';
       
       // Extract PAN (JWT: pan_number)
       const verifiedPan = profileData.pan_number || profileData.pan || '';
