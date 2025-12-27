@@ -2,9 +2,11 @@ import { getAuth } from 'firebase/auth';
 
 // Use relative URL if on same server, otherwise fall back to env var or default
 const getApiBaseUrl = (): string => {
-  // In browser, prefer relative URLs for Next.js API routes
+  // In browser, always prefer relative URLs for Next.js API routes
+  // This ensures API routes work on the same domain (Vercel deployment)
   if (typeof window !== 'undefined') {
     const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    const currentOrigin = window.location.origin;
     
     // If no env URL set, use relative URL (Next.js API routes)
     if (!envUrl) {
@@ -16,19 +18,23 @@ const getApiBaseUrl = (): string => {
       return envUrl;
     }
     
-    // Check if env URL is on localhost with different port
-    // In this case, prefer relative URL for Next.js API routes
+    // Check if env URL matches current origin
     try {
       const envUrlObj = new URL(envUrl);
-      const currentOrigin = window.location.origin;
       
-      // If same origin, use relative URL
+      // If same origin, always use relative URL (Next.js API routes on same domain)
       if (envUrlObj.origin === currentOrigin) {
         return '/api';
       }
       
+      // Special case: If current domain is resumebuilder.ilc.limited and env points to resumeapi.ilc.limited
+      // These are likely meant to be the same server, use relative URL
+      if (currentOrigin.includes('resumebuilder.ilc.limited') && envUrl.includes('resumeapi.ilc.limited')) {
+        console.warn('⚠️ NEXT_PUBLIC_API_URL points to separate API server, but using relative URL for Next.js API routes');
+        return '/api';
+      }
+      
       // If both are localhost but different ports, prefer relative URL
-      // (Next.js API routes are on the same server as frontend)
       if (envUrlObj.hostname === 'localhost' && currentOrigin.includes('localhost')) {
         return '/api';
       }
@@ -37,7 +43,8 @@ const getApiBaseUrl = (): string => {
       return '/api';
     }
     
-    // Production with different origin (e.g., separate API server), use the env URL
+    // Different origin and not same domain pattern, use the env URL
+    // (This handles cases where API is truly on a separate server)
     return envUrl;
   }
   
