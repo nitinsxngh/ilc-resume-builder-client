@@ -7,7 +7,15 @@ export default async function handler(
   req: AuthenticatedRequest,
   res: NextApiResponse
 ) {
-  await connectDB();
+  try {
+    await connectDB();
+  } catch (dbError: any) {
+    console.error('Database connection error:', dbError);
+    return res.status(500).json({
+      success: false,
+      error: dbError.message || 'Database connection failed. Please check your MONGODB_URI environment variable.',
+    });
+  }
 
   const isAuthenticated = await verifyAuth(req, res);
   if (!isAuthenticated) {
