@@ -848,17 +848,15 @@ export function IntroEdit({ METADATA, state, update }: any) {
                   >
                     <UploadOutlined className="upload-icon" />
                     <span className="upload-text">
-                      {cert.file ? cert.file.name : 'Upload Certificate'}
+                      {cert.file ? cert.file.name : 'Upload'}
                     </span>
                   </UploadIconWrapper>
-                  {cert.id !== '10th' && cert.id !== '12th' && (
-                    <DeleteButton
-                      icon={<DeleteOutlined />}
-                      onClick={() => {
-                        setCertifications(certifications.filter((_, i) => i !== index));
-                      }}
-                    />
-                  )}
+                  <DeleteButton
+                    icon={<DeleteOutlined />}
+                    onClick={() => {
+                      setCertifications(certifications.filter((_, i) => i !== index));
+                    }}
+                  />
                 </CertificationItem>
                 {cert.error && <ErrorText>{cert.error}</ErrorText>}
               </div>
