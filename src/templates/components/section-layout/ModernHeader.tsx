@@ -74,6 +74,40 @@ const VerifiedIcon = styled(CheckCircleOutlined)`
   margin-left: 8px;
 `;
 
+// Helper function to compare names - matches if first name matches or all words match exactly
+const compareNames = (name1: string | null | undefined, name2: string | null | undefined): boolean => {
+  if (!name1 || !name2) return false;
+  
+  const normalizeString = (str: string) => str.trim().toLowerCase().replace(/\s+/g, ' ');
+  const normalized1 = normalizeString(name1);
+  const normalized2 = normalizeString(name2);
+  
+  // Exact match
+  if (normalized1 === normalized2) return true;
+  
+  // Split into words
+  const words1 = normalized1.split(/\s+/).filter(w => w.length > 0);
+  const words2 = normalized2.split(/\s+/).filter(w => w.length > 0);
+  
+  if (words1.length === 0 || words2.length === 0) return false;
+  
+  // Check if first name (first word) matches
+  if (words1[0] === words2[0]) return true;
+  
+  // Check if all words match exactly (order doesn't matter)
+  if (words1.length === words2.length) {
+    const sorted1 = [...words1].sort();
+    const sorted2 = [...words2].sort();
+    return sorted1.every((word, index) => word === sorted2[index]);
+  }
+  
+  // If one name is shorter, check if all words from shorter exist exactly in longer
+  const shorter = words1.length <= words2.length ? words1 : words2;
+  const longer = words1.length > words2.length ? words1 : words2;
+  
+  return shorter.every(word => longer.includes(word));
+};
+
 export function ModernHeaderIntro({
   styles,
   title,
@@ -83,7 +117,11 @@ export function ModernHeaderIntro({
   verification,
 }: any) {
   const verifiedFields = verification?.verifiedFields || [];
-  const isNameVerified = verifiedFields.includes('name');
+  
+  // Check if name actually matches verified name
+  const verifiedName = verification?.verifiedData?.name;
+  const resumeName = title;
+  const isNameVerified = verifiedFields.includes('name') && verifiedName && resumeName && compareNames(resumeName, verifiedName);
 
   return (
     <SectionIntroHolder style={styles}>
