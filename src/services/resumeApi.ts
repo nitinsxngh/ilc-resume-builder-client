@@ -187,11 +187,27 @@ class ResumeApiService {
   }
 
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
+    // Check content type before reading
+    const contentType = response.headers.get('content-type');
+    const isJson = contentType?.includes('application/json');
+    
     let data;
-    try {
-      data = await response.json();
-    } catch (error) {
-      // If response is not JSON, get text instead
+    
+    if (isJson) {
+      try {
+        data = await response.json();
+      } catch (error) {
+        // If JSON parsing fails, try to get text (clone first to avoid stream read error)
+        const clonedResponse = response.clone();
+        try {
+          const text = await clonedResponse.text();
+          throw new Error(`Invalid JSON response (${response.status}): ${text.substring(0, 100)}`);
+        } catch (textError: any) {
+          throw new Error(`Failed to parse response (${response.status}): ${textError.message}`);
+        }
+      }
+    } else {
+      // Not JSON, get text
       const text = await response.text();
       throw new Error(`Server error (${response.status}): ${text || response.statusText}`);
     }
