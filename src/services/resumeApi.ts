@@ -222,9 +222,9 @@ class ResumeApiService {
     try {
       const headers = await this.getAuthHeaders();
       
-      // Add timeout to fetch request (30 seconds)
+      // Add timeout to fetch request (50 seconds - slightly less than function timeout)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 50000);
       
       try {
         const response = await fetch(`${API_BASE_URL}/resumes/default`, {

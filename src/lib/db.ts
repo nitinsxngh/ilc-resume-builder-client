@@ -36,6 +36,11 @@ async function connectDB(): Promise<typeof mongoose> {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      serverSelectionTimeoutMS: 10000, // 10 seconds to select server
+      socketTimeoutMS: 45000, // 45 seconds socket timeout
+      connectTimeoutMS: 10000, // 10 seconds connection timeout
+      maxPoolSize: 1, // Maintain up to 1 socket connection for serverless
+      minPoolSize: 0, // Allow connection pool to close when idle
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {

@@ -21,7 +21,7 @@
   },
   "functions": {
     "src/pages/api/**/*.ts": {
-      "maxDuration": 30
+      "maxDuration": 60
     }
   }
 }
