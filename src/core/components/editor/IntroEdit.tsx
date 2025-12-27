@@ -530,53 +530,68 @@ export function IntroEdit({ METADATA, state, update }: any) {
 
       if (response.ok) {
         const data = await response.json();
-        // Common DigiLocker certificate types
-        const commonCertificates = [
-          { name: '10th Marksheet', type: '10th', description: 'Class 10th Board Certificate' },
-          { name: '12th Marksheet', type: '12th', description: 'Class 12th Board Certificate' },
+        // Filter only educational certificates and exclude 10th and 12th
+        const educationalCertificates = [
           { name: 'Degree Certificate', type: 'degree', description: 'Graduation Degree Certificate' },
           { name: 'Diploma Certificate', type: 'diploma', description: 'Diploma Certificate' },
           { name: 'ITI Certificate', type: 'iti', description: 'ITI Certificate' },
-          { name: 'Driving License', type: 'driving', description: 'Driving License' },
-          { name: 'Aadhaar Card', type: 'aadhaar', description: 'Aadhaar Card' },
-          { name: 'PAN Card', type: 'pan', description: 'PAN Card' },
-          { name: 'Voter ID', type: 'voter', description: 'Voter ID Card' },
-          { name: 'Birth Certificate', type: 'birth', description: 'Birth Certificate' },
-          ...(data.documents || [])
+          { name: 'Post Graduate Certificate', type: 'pg', description: 'Post Graduate Certificate' },
+          { name: 'Master Degree Certificate', type: 'masters', description: 'Master Degree Certificate' },
+          { name: 'PhD Certificate', type: 'phd', description: 'PhD Certificate' },
+          { name: 'Professional Certificate', type: 'professional', description: 'Professional Certificate' },
+          { name: 'Technical Certificate', type: 'technical', description: 'Technical Certificate' }
         ];
-        setAvailableCertificates(commonCertificates);
+        
+        // Filter DigiLocker documents to only include educational ones and exclude 10th/12th
+        const digiLockerDocs = (data.documents || []).filter((doc: any) => {
+          const docName = (doc.name || doc.title || '').toLowerCase();
+          const docType = (doc.type || doc.doctype || '').toLowerCase();
+          // Exclude 10th, 12th, and non-educational documents
+          return !docName.includes('10th') && 
+                 !docName.includes('12th') && 
+                 !docName.includes('driving') &&
+                 !docName.includes('aadhaar') &&
+                 !docName.includes('pan') &&
+                 !docName.includes('voter') &&
+                 !docName.includes('birth') &&
+                 (docName.includes('degree') || 
+                  docName.includes('diploma') || 
+                  docName.includes('certificate') ||
+                  docName.includes('education') ||
+                  docName.includes('marksheet') ||
+                  docType.includes('education') ||
+                  docType.includes('degree'));
+        });
+        
+        setAvailableCertificates([...educationalCertificates, ...digiLockerDocs]);
       } else {
-        // Fallback to common certificates if API fails
-        const commonCertificates = [
-          { name: '10th Marksheet', type: '10th', description: 'Class 10th Board Certificate' },
-          { name: '12th Marksheet', type: '12th', description: 'Class 12th Board Certificate' },
+        // Fallback to educational certificates only if API fails
+        const educationalCertificates = [
           { name: 'Degree Certificate', type: 'degree', description: 'Graduation Degree Certificate' },
           { name: 'Diploma Certificate', type: 'diploma', description: 'Diploma Certificate' },
           { name: 'ITI Certificate', type: 'iti', description: 'ITI Certificate' },
-          { name: 'Driving License', type: 'driving', description: 'Driving License' },
-          { name: 'Aadhaar Card', type: 'aadhaar', description: 'Aadhaar Card' },
-          { name: 'PAN Card', type: 'pan', description: 'PAN Card' },
-          { name: 'Voter ID', type: 'voter', description: 'Voter ID Card' },
-          { name: 'Birth Certificate', type: 'birth', description: 'Birth Certificate' }
+          { name: 'Post Graduate Certificate', type: 'pg', description: 'Post Graduate Certificate' },
+          { name: 'Master Degree Certificate', type: 'masters', description: 'Master Degree Certificate' },
+          { name: 'PhD Certificate', type: 'phd', description: 'PhD Certificate' },
+          { name: 'Professional Certificate', type: 'professional', description: 'Professional Certificate' },
+          { name: 'Technical Certificate', type: 'technical', description: 'Technical Certificate' }
         ];
-        setAvailableCertificates(commonCertificates);
+        setAvailableCertificates(educationalCertificates);
       }
     } catch (error) {
       console.error('Error fetching DigiLocker certificates:', error);
-      // Fallback to common certificates
-      const commonCertificates = [
-        { name: '10th Marksheet', type: '10th', description: 'Class 10th Board Certificate' },
-        { name: '12th Marksheet', type: '12th', description: 'Class 12th Board Certificate' },
+      // Fallback to educational certificates only
+      const educationalCertificates = [
         { name: 'Degree Certificate', type: 'degree', description: 'Graduation Degree Certificate' },
         { name: 'Diploma Certificate', type: 'diploma', description: 'Diploma Certificate' },
         { name: 'ITI Certificate', type: 'iti', description: 'ITI Certificate' },
-        { name: 'Driving License', type: 'driving', description: 'Driving License' },
-        { name: 'Aadhaar Card', type: 'aadhaar', description: 'Aadhaar Card' },
-        { name: 'PAN Card', type: 'pan', description: 'PAN Card' },
-        { name: 'Voter ID', type: 'voter', description: 'Voter ID Card' },
-        { name: 'Birth Certificate', type: 'birth', description: 'Birth Certificate' }
+        { name: 'Post Graduate Certificate', type: 'pg', description: 'Post Graduate Certificate' },
+        { name: 'Master Degree Certificate', type: 'masters', description: 'Master Degree Certificate' },
+        { name: 'PhD Certificate', type: 'phd', description: 'PhD Certificate' },
+        { name: 'Professional Certificate', type: 'professional', description: 'Professional Certificate' },
+        { name: 'Technical Certificate', type: 'technical', description: 'Technical Certificate' }
       ];
-      setAvailableCertificates(commonCertificates);
+      setAvailableCertificates(educationalCertificates);
     } finally {
       setLoadingCertificates(false);
     }
@@ -584,6 +599,13 @@ export function IntroEdit({ METADATA, state, update }: any) {
 
   // Handle certificate selection
   const handleCertificateSelect = (certificate: any) => {
+    // Don't allow adding 10th or 12th as they're already shown by default
+    const certName = certificate.name.toLowerCase();
+    if (certName.includes('10th') || certName.includes('12th')) {
+      message.warning('10th and 12th certificates are already shown by default');
+      return;
+    }
+
     // Check if certificate already exists
     const exists = certifications.some(cert => cert.label.toLowerCase() === certificate.name.toLowerCase());
     if (exists) {

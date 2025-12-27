@@ -57,13 +57,34 @@ export default async function handler(
     console.log('Documents fetched successfully');
 
     // Transform DigiLocker documents to our format
-    const documents = (documentsData.files || documentsData.documents || []).map((file: any) => ({
-      name: file.name || file.title || file.doctype || 'Certificate',
-      type: file.doctype || file.type || 'certificate',
-      description: file.description || `${file.doctype || 'Certificate'} from DigiLocker`,
-      id: file.id || file.fileid,
-      uri: file.uri || file.url
-    }));
+    // Filter to only include educational certificates and exclude 10th, 12th, and non-educational documents
+    const documents = (documentsData.files || documentsData.documents || [])
+      .map((file: any) => ({
+        name: file.name || file.title || file.doctype || 'Certificate',
+        type: file.doctype || file.type || 'certificate',
+        description: file.description || `${file.doctype || 'Certificate'} from DigiLocker`,
+        id: file.id || file.fileid,
+        uri: file.uri || file.url
+      }))
+      .filter((doc: any) => {
+        const docName = doc.name.toLowerCase();
+        const docType = doc.type.toLowerCase();
+        // Exclude 10th, 12th, and non-educational documents
+        return !docName.includes('10th') && 
+               !docName.includes('12th') && 
+               !docName.includes('driving') &&
+               !docName.includes('aadhaar') &&
+               !docName.includes('pan') &&
+               !docName.includes('voter') &&
+               !docName.includes('birth') &&
+               (docName.includes('degree') || 
+                docName.includes('diploma') || 
+                docName.includes('certificate') ||
+                docName.includes('education') ||
+                docName.includes('marksheet') ||
+                docType.includes('education') ||
+                docType.includes('degree'));
+      });
 
     res.status(200).json({ documents });
   } catch (error: any) {
