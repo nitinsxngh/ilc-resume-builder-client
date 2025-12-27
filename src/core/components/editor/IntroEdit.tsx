@@ -1,7 +1,7 @@
 import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { Input as AntInput, Button, Space, Divider } from 'antd';
-import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, CloseCircleOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { MarkDownField } from 'src/core/widgets/MarkdownField';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
@@ -97,8 +97,68 @@ const VerificationButton = styled(Button)`
   }
 `;
 
+const CertificationItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 12px;
+  background: #1f1f1f;
+  border-radius: 6px;
+  border: 1px solid #333;
+`;
+
+const CertificationInput = styled(AntInput)`
+  border: 1px solid #333;
+  height: 2.5rem;
+  padding: 0.625rem;
+  background: #2a2a2a;
+  color: #fff;
+  border-radius: 4px;
+  flex: 1;
+  
+  &:focus {
+    border-color: #1890ff;
+  }
+`;
+
+const AddMoreButton = styled(Button)`
+  margin-top: 12px;
+  width: 100%;
+  border: 1px dashed #555;
+  color: #ccc;
+  background: transparent;
+  
+  &:hover {
+    border-color: #1890ff;
+    color: #1890ff;
+    background: rgba(24, 144, 255, 0.1);
+  }
+`;
+
+const DeleteButton = styled(Button)`
+  color: #ff4d4f;
+  border-color: #ff4d4f;
+  
+  &:hover {
+    color: #ff7875;
+    border-color: #ff7875;
+  }
+`;
+
+interface Certification {
+  id: string;
+  label: string;
+  details: string;
+  verified: boolean;
+}
+
 export function IntroEdit({ METADATA, state, update }: any) {
   const [showVerificationPopup, setShowVerificationPopup] = useState(false);
+  const [certifications, setCertifications] = useState<Certification[]>([
+    { id: '10th', label: '10th', details: '', verified: false },
+    { id: '12th', label: '12th', details: '', verified: false }
+  ]);
   const [verificationState, setVerificationState] = useState({
     isVerified: false,
     verifiedBy: null as string | null,
@@ -491,6 +551,75 @@ export function IntroEdit({ METADATA, state, update }: any) {
           </VerificationButton>
         </div>
         
+      </VerificationSection>
+
+      <VerificationSection>
+        <VerificationHeader>
+          <VerificationTitle>Certification Verification</VerificationTitle>
+        </VerificationHeader>
+        
+        <VerificationDescription>
+          Verify your educational certifications to add credibility to your resume.
+        </VerificationDescription>
+        
+        <div>
+          {certifications.map((cert, index) => (
+            <CertificationItem key={cert.id}>
+              <FieldLabel style={{ minWidth: '100px' }}>
+                {cert.id === '10th' || cert.id === '12th' ? (
+                  <>
+                    {cert.label}:
+                  </>
+                ) : (
+                  <CertificationInput
+                    placeholder="Certification name"
+                    value={cert.label}
+                    onChange={(e) => {
+                      const updated = [...certifications];
+                      updated[index] = { ...updated[index], label: e.target.value };
+                      setCertifications(updated);
+                    }}
+                    style={{ width: '150px', marginRight: '8px' }}
+                  />
+                )}
+              </FieldLabel>
+              <CertificationInput
+                placeholder={cert.id === '10th' || cert.id === '12th' ? `Enter ${cert.label} details` : 'Enter certification details'}
+                value={cert.details}
+                onChange={(e) => {
+                  const updated = [...certifications];
+                  updated[index] = { ...updated[index], details: e.target.value };
+                  setCertifications(updated);
+                }}
+              />
+              {cert.id !== '10th' && cert.id !== '12th' && (
+                <DeleteButton
+                  icon={<DeleteOutlined />}
+                  onClick={() => {
+                    setCertifications(certifications.filter((_, i) => i !== index));
+                  }}
+                >
+                  Remove
+                </DeleteButton>
+              )}
+            </CertificationItem>
+          ))}
+          
+          <AddMoreButton
+            icon={<PlusOutlined />}
+            onClick={() => {
+              const newCert: Certification = {
+                id: `cert-${Date.now()}`,
+                label: '',
+                details: '',
+                verified: false
+              };
+              setCertifications([...certifications, newCert]);
+            }}
+          >
+            Add More Certification
+          </AddMoreButton>
+        </div>
       </VerificationSection>
       
       <Divider style={{ background: '#333', margin: '24px 0' }} />
