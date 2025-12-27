@@ -79,7 +79,6 @@ function ContactItem({ value = '', icon = <></>, redirectAction = '', isVerified
 
 function Intro({ intro, verification }: any) {
   const verifiedFields = verification?.verifiedFields || [];
-  const isEmailVerified = verifiedFields.includes('email');
   const isPhoneVerified = verifiedFields.includes('phone');
   return (
     <IntroContainer>
@@ -120,7 +119,7 @@ function Intro({ intro, verification }: any) {
           icon={getIcon('email')}
           value={intro.email}
           redirectAction={`mailto:${intro.email}`}
-          isVerified={isEmailVerified}
+          isVerified={false}
         />
         <ContactItem icon={getIcon('location')} value={intro.location.city} type="location" />
       </div>

@@ -357,7 +357,7 @@ export function IntroEdit({ METADATA, state, update }: any) {
     return normalized1 === normalized2;
   };
 
-  // Function to compare names - matches if either name contains the other (for partial matching)
+  // Function to compare names - matches if first name matches or all words match exactly
   const compareNames = (name1: string | null | undefined, name2: string | null | undefined): boolean => {
     const normalized1 = normalizeString(name1);
     const normalized2 = normalizeString(name2);
@@ -366,19 +366,29 @@ export function IntroEdit({ METADATA, state, update }: any) {
     // Exact match
     if (normalized1 === normalized2) return true;
     
-    // Split into words for partial matching
+    // Split into words
     const words1 = normalized1.split(/\s+/).filter(w => w.length > 0);
     const words2 = normalized2.split(/\s+/).filter(w => w.length > 0);
     
     // If either name is empty after splitting, return false
     if (words1.length === 0 || words2.length === 0) return false;
     
-    // Check if all words from the shorter name exist in the longer name
+    // Check if first name (first word) matches
+    if (words1[0] === words2[0]) return true;
+    
+    // Check if all words match exactly (order doesn't matter)
+    if (words1.length === words2.length) {
+      const sorted1 = [...words1].sort();
+      const sorted2 = [...words2].sort();
+      return sorted1.every((word, index) => word === sorted2[index]);
+    }
+    
+    // If one name is shorter, check if all words from shorter exist exactly in longer
     const shorter = words1.length <= words2.length ? words1 : words2;
     const longer = words1.length > words2.length ? words1 : words2;
     
-    // Match if all words from shorter name are found in longer name
-    return shorter.every(word => longer.some(longWord => longWord.includes(word) || word.includes(longWord)));
+    // Match if all words from shorter name exist exactly in longer name (exact word match, not substring)
+    return shorter.every(word => longer.includes(word));
   };
 
   // Function to compare phone numbers (remove spaces, dashes, parentheses)

@@ -27,7 +27,6 @@ const Contact = ({ icon, value, isVerified }: any) => (
 
 export function Intro({ intro, labels, verification }: any) {
   const verifiedFields = verification?.verifiedFields || [];
-  const isEmailVerified = verifiedFields.includes('email');
   const isPhoneVerified = verifiedFields.includes('phone');
 
   return (
@@ -49,7 +48,7 @@ export function Intro({ intro, labels, verification }: any) {
 
       <FlexCol jc="flex-end" rGap="5px">
         <Contact icon={getIcon('mobile')} value={intro.phone} isVerified={isPhoneVerified} />
-        <Contact icon={getIcon('email')} value={intro.email} isVerified={isEmailVerified} />
+        <Contact icon={getIcon('email')} value={intro.email} isVerified={false} />
         <Contact icon={getIcon('location')} value={intro.location.city} />
       </FlexCol>
     </Flex>
