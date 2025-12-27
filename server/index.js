@@ -1,4 +1,5 @@
 const express = require('express');
+const next = require('next');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -12,8 +13,13 @@ const mongoose = require('mongoose');
 const resumeRoutes = require('./routes/resumes');
 const verificationRoutes = require('./routes/verification');
 
+// Initialize Next.js
+const dev = process.env.NODE_ENV !== 'production';
+const nextApp = next({ dev, dir: require('path').join(__dirname, '..') });
+const handle = nextApp.getRequestHandler();
+
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 3000;
 
 // Connect to MongoDB
 connectDB();
@@ -21,7 +27,7 @@ connectDB();
 // Security middleware
 app.use(helmet());
 
-// CORS configuration
+// CORS configuration - Allow same origin since frontend and backend are on same server
 const allowedOrigins = [
   process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   'http://localhost:3000',
@@ -65,79 +71,88 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes
+// API routes (must be before Next.js handler)
 app.use('/api/resumes', authMiddleware, resumeRoutes);
 app.use('/api/resumes', authMiddleware, verificationRoutes);
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  
-  if (err.name === 'ValidationError') {
-    return res.status(400).json({
-      success: false,
-      error: 'Validation error',
-      message: err.message
-    });
-  }
-  
-  if (err.name === 'UnauthorizedError' || err.name === 'JsonWebTokenError') {
-    return res.status(401).json({
-      success: false,
-      error: 'Authentication failed',
-      message: 'Invalid or expired token'
-    });
-  }
-  
-  res.status(err.status || 500).json({
-    success: false,
-    error: err.message || 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-  });
+// Handle all other routes with Next.js
+app.all('*', (req, res) => {
+  return handle(req, res);
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    error: 'Route not found'
-  });
+// Error handling middleware (must be after routes)
+app.use((err, req, res, next) => {
+  // Only handle API errors, let Next.js handle frontend errors
+  if (req.path.startsWith('/api')) {
+    console.error('API Error:', err);
+    
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation error',
+        message: err.message
+      });
+    }
+    
+    if (err.name === 'UnauthorizedError' || err.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication failed',
+        message: 'Invalid or expired token'
+      });
+    }
+    
+    return res.status(err.status || 500).json({
+      success: false,
+      error: err.message || 'Internal server error',
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    });
+  }
+  
+  // For non-API routes, pass to Next.js error handler
+  next(err);
 });
 
 // Start server
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Backend server running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`📝 API Base: http://localhost:${PORT}/api`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  
-  if (process.env.NODE_ENV === 'production') {
-    console.log(`✅ Production mode enabled`);
-    console.log(`🔒 Security features: Enabled`);
-  }
-});
+nextApp.prepare().then(() => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📊 Health check: http://localhost:${PORT}/health`);
+    console.log(`📝 API Base: http://localhost:${PORT}/api`);
+    console.log(`🌐 Frontend: http://localhost:${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    
+    if (process.env.NODE_ENV === 'production') {
+      console.log(`✅ Production mode enabled`);
+      console.log(`🔒 Security features: Enabled`);
+    }
+  });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  server.close(() => {
-    console.log('HTTP server closed');
-    mongoose.connection.close(false, () => {
-      console.log('MongoDB connection closed');
-      process.exit(0);
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server');
+    server.close(() => {
+      console.log('HTTP server closed');
+      mongoose.connection.close(false, () => {
+        console.log('MongoDB connection closed');
+        process.exit(0);
+      });
     });
   });
-});
 
-process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');
-  server.close(() => {
-    console.log('HTTP server closed');
-    mongoose.connection.close(false, () => {
-      console.log('MongoDB connection closed');
-      process.exit(0);
+  process.on('SIGINT', () => {
+    console.log('SIGINT signal received: closing HTTP server');
+    server.close(() => {
+      console.log('HTTP server closed');
+      mongoose.connection.close(false, () => {
+        console.log('MongoDB connection closed');
+        process.exit(0);
+      });
     });
   });
+}).catch((ex) => {
+  console.error('Failed to start server:', ex);
+  process.exit(1);
 });
 
 module.exports = app;

@@ -1,6 +1,51 @@
 import { getAuth } from 'firebase/auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+// Use relative URL if on same server, otherwise fall back to env var or default
+const getApiBaseUrl = (): string => {
+  // In browser, prefer relative URLs for Next.js API routes
+  if (typeof window !== 'undefined') {
+    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    
+    // If no env URL set, use relative URL (Next.js API routes)
+    if (!envUrl) {
+      return '/api';
+    }
+    
+    // If env URL is relative, use it
+    if (envUrl.startsWith('/')) {
+      return envUrl;
+    }
+    
+    // Check if env URL is on localhost with different port
+    // In this case, prefer relative URL for Next.js API routes
+    try {
+      const envUrlObj = new URL(envUrl);
+      const currentOrigin = window.location.origin;
+      
+      // If same origin, use relative URL
+      if (envUrlObj.origin === currentOrigin) {
+        return '/api';
+      }
+      
+      // If both are localhost but different ports, prefer relative URL
+      // (Next.js API routes are on the same server as frontend)
+      if (envUrlObj.hostname === 'localhost' && currentOrigin.includes('localhost')) {
+        return '/api';
+      }
+    } catch (e) {
+      // Invalid URL, use relative
+      return '/api';
+    }
+    
+    // Production with different origin (e.g., separate API server), use the env URL
+    return envUrl;
+  }
+  
+  // Server-side: use env var or default to relative URL
+  return process.env.NEXT_PUBLIC_API_URL || '/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 interface ApiResponse<T> {
   success: boolean;

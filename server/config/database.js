@@ -8,12 +8,9 @@ const connectDB = async () => {
       throw new Error('MONGODB_URI is not defined in environment variables');
     }
 
-    const options = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    };
-
-    await mongoose.connect(mongoURI, options);
+    // Note: useNewUrlParser and useUnifiedTopology are deprecated in Mongoose 6+
+    // They are automatically enabled by default
+    await mongoose.connect(mongoURI);
 
     console.log('✅ MongoDB connected successfully');
     console.log(`📦 Database: ${mongoose.connection.name}`);

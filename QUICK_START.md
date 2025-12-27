@@ -2,19 +2,37 @@
 
 ## Running Frontend and Backend Together
 
-### Option 1: Using the Start Script (Recommended)
+### Option 1: Unified Server (Recommended - Single Server)
+Run both frontend and backend on the same server (port 3000):
+
+```bash
+# First, build Next.js (one time)
+npm run build
+
+# Then start unified server
+npm run dev:unified
+# or
+./start-unified.sh
+```
+
+**Benefits:**
+- Single process to manage
+- No CORS issues
+- Simpler configuration
+- Closer to production setup
+
+**Access:**
+- Frontend: http://localhost:3000
+- API: http://localhost:3000/api
+- Health: http://localhost:3000/health
+
+### Option 2: Using the Start Script (Separate Servers)
 ```bash
 ./start-dev.sh
 ```
-This will start both frontend and backend in separate terminal windows (macOS) or in the background (Linux/Unix).
+This will prompt you to choose between unified or separate servers.
 
-### Option 2: Using npm Scripts
-```bash
-npm run dev:both
-```
-Same as above, uses the start-dev.sh script.
-
-### Option 3: Manual (Two Terminals)
+### Option 3: Separate Servers (Two Terminals)
 
 **Terminal 1 - Backend:**
 ```bash
@@ -24,6 +42,11 @@ npm run dev:backend
 **Terminal 2 - Frontend:**
 ```bash
 npm run dev:frontend
+```
+
+**Note:** For separate servers, make sure `.env` has:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5001/api
 ```
 
 ### Option 4: Using concurrently (Optional)
@@ -54,7 +77,15 @@ If you want to run both in a single terminal with colored output:
 
 ## Environment Setup
 
-Make sure your `.env` file has:
+### For Unified Server (Recommended):
+```env
+MONGODB_URI=mongodb+srv://hunnidassets:hunnidassets%40123@hunnidassets.6bll8ud.mongodb.net/ilc_resume?retryWrites=true&w=majority&appName=hunnidassets
+PORT=3000
+# NEXT_PUBLIC_API_URL can be omitted or set to /api (relative URL)
+NEXT_PUBLIC_API_URL=/api
+```
+
+### For Separate Servers:
 ```env
 MONGODB_URI=mongodb+srv://hunnidassets:hunnidassets%40123@hunnidassets.6bll8ud.mongodb.net/ilc_resume?retryWrites=true&w=majority&appName=hunnidassets
 PORT=5001

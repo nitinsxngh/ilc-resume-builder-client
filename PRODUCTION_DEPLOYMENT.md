@@ -4,6 +4,10 @@
 
 This guide covers deploying both the frontend and backend to production.
 
+> **⚠️ Note**: This application now supports **unified deployment** where both frontend and backend run on a single server. This is the **recommended approach** as it simplifies deployment and reduces infrastructure complexity. See [UNIFIED_DEPLOYMENT.md](./UNIFIED_DEPLOYMENT.md) for the unified deployment guide.
+
+The sections below describe the legacy separate deployment approach, which is still supported but not recommended for new deployments.
+
 ## Prerequisites
 
 1. **MongoDB Atlas** - Database configured and accessible
