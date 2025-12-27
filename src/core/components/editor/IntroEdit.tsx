@@ -1,6 +1,7 @@
 import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { Input as AntInput, Button, Space, Divider } from 'antd';
+import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { MarkDownField } from 'src/core/widgets/MarkdownField';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
@@ -76,6 +77,14 @@ const FieldValue = styled.span`
   flex: 1;
 `;
 
+const MatchIndicator = styled.span<{ matched: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  color: ${props => props.matched ? '#52c41a' : '#ff4d4f'};
+  font-size: 16px;
+`;
+
 const VerificationButton = styled(Button)`
   background: #1890ff;
   border-color: #1890ff;
@@ -96,6 +105,14 @@ export function IntroEdit({ METADATA, state, update }: any) {
     verificationDate: null as string | null,
     verifiedFields: [] as string[],
     confidence: 0,
+    verifiedData: null as {
+      name?: string;
+      email?: string;
+      phone?: string;
+      aadhaar?: string;
+      pan?: string;
+      address?: string;
+    } | null,
     isLoading: false,
     error: null as string | null
   });
@@ -111,6 +128,7 @@ export function IntroEdit({ METADATA, state, update }: any) {
           verificationDate: defaultResume.verification.verificationDate || null,
           verifiedFields: defaultResume.verification.verifiedFields || [],
           confidence: defaultResume.verification.confidence || 0,
+          verifiedData: defaultResume.verification.verifiedData || null,
           isLoading: false,
           error: null
         });
@@ -137,6 +155,7 @@ export function IntroEdit({ METADATA, state, update }: any) {
               verificationDate: result.verificationDate || null,
               verifiedFields: result.verifiedFields || [],
               confidence: result.confidence || 0,
+              verifiedData: result.verifiedData || null,
               isLoading: false,
               error: null
             });
@@ -193,6 +212,7 @@ export function IntroEdit({ METADATA, state, update }: any) {
               verificationDate: result.verificationDate || null,
               verifiedFields: result.verifiedFields || [],
               confidence: result.confidence || 0,
+              verifiedData: result.verifiedData || null,
               isLoading: false,
               error: null
             });
@@ -217,6 +237,7 @@ export function IntroEdit({ METADATA, state, update }: any) {
                   verificationDate: defaultResume.verification.verificationDate || null,
                   verifiedFields: defaultResume.verification.verifiedFields || [],
                   confidence: defaultResume.verification.confidence || 0,
+                  verifiedData: defaultResume.verification.verifiedData || null,
                   isLoading: false,
                   error: null
                 });
@@ -244,6 +265,7 @@ export function IntroEdit({ METADATA, state, update }: any) {
                 verificationDate: defaultResume.verification.verificationDate || null,
                 verifiedFields: defaultResume.verification.verifiedFields || [],
                 confidence: defaultResume.verification.confidence || 0,
+                verifiedData: defaultResume.verification.verifiedData || null,
                 isLoading: false,
                 error: null
               });
@@ -277,6 +299,7 @@ export function IntroEdit({ METADATA, state, update }: any) {
         verificationDate: verifiedData.verificationDate || null,
         verifiedFields: verifiedData.verifiedFields || [],
         confidence: verifiedData.confidence || 0,
+        verifiedData: verifiedData.verifiedData || null,
         isLoading: false,
         error: null
       };
@@ -320,6 +343,43 @@ export function IntroEdit({ METADATA, state, update }: any) {
     return 'unverified';
   };
 
+  // Function to normalize strings for comparison (remove spaces, convert to lowercase)
+  const normalizeString = (str: string | null | undefined): string => {
+    if (!str) return '';
+    return str.trim().toLowerCase().replace(/\s+/g, ' ');
+  };
+
+  // Function to compare two strings (case-insensitive, space-insensitive)
+  const compareStrings = (str1: string | null | undefined, str2: string | null | undefined): boolean => {
+    const normalized1 = normalizeString(str1);
+    const normalized2 = normalizeString(str2);
+    if (!normalized1 || !normalized2) return false;
+    return normalized1 === normalized2;
+  };
+
+  // Function to compare phone numbers (remove spaces, dashes, parentheses)
+  const comparePhoneNumbers = (phone1: string | null | undefined, phone2: string | null | undefined): boolean => {
+    if (!phone1 || !phone2) return false;
+    const normalizePhone = (phone: string) => phone.replace(/[\s\-\(\)\+]/g, '');
+    return normalizePhone(phone1) === normalizePhone(phone2);
+  };
+
+  // Check if fields match with verified data
+  const checkFieldMatch = (field: 'name' | 'email' | 'phone'): boolean => {
+    if (!verificationState.verifiedData) return false;
+    
+    const verifiedValue = verificationState.verifiedData[field];
+    const resumeValue = field === 'name' ? state.name : field === 'email' ? state.email : state.phone;
+    
+    if (!verifiedValue || !resumeValue) return false;
+    
+    if (field === 'phone') {
+      return comparePhoneNumbers(resumeValue, verifiedValue);
+    } else {
+      return compareStrings(resumeValue, verifiedValue);
+    }
+  };
+
   return (
     <>
       <VerificationSection>
@@ -342,15 +402,48 @@ export function IntroEdit({ METADATA, state, update }: any) {
         <div>
           <FieldWrapper>
             <FieldLabel>Name:</FieldLabel>
-            <FieldValue>{state.name || 'Not provided'}</FieldValue>
+            <FieldValue>
+              {state.name || 'Not provided'}
+              {verificationState.verifiedData && (
+                <MatchIndicator matched={checkFieldMatch('name')}>
+                  {checkFieldMatch('name') ? (
+                    <CheckCircleOutlined />
+                  ) : (
+                    <CloseCircleOutlined />
+                  )}
+                </MatchIndicator>
+              )}
+            </FieldValue>
           </FieldWrapper>
           <FieldWrapper>
             <FieldLabel>Email:</FieldLabel>
-            <FieldValue>{state.email || 'Not provided'}</FieldValue>
+            <FieldValue>
+              {state.email || 'Not provided'}
+              {verificationState.verifiedData && (
+                <MatchIndicator matched={checkFieldMatch('email')}>
+                  {checkFieldMatch('email') ? (
+                    <CheckCircleOutlined />
+                  ) : (
+                    <CloseCircleOutlined />
+                  )}
+                </MatchIndicator>
+              )}
+            </FieldValue>
           </FieldWrapper>
           <FieldWrapper>
             <FieldLabel>Phone:</FieldLabel>
-            <FieldValue>{state.phone || 'Not provided'}</FieldValue>
+            <FieldValue>
+              {state.phone || 'Not provided'}
+              {verificationState.verifiedData && (
+                <MatchIndicator matched={checkFieldMatch('phone')}>
+                  {checkFieldMatch('phone') ? (
+                    <CheckCircleOutlined />
+                  ) : (
+                    <CloseCircleOutlined />
+                  )}
+                </MatchIndicator>
+              )}
+            </FieldValue>
           </FieldWrapper>
         </div>
         
