@@ -1,7 +1,7 @@
 import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { Input as AntInput, Button, Space, Divider, Modal, List, Spin, message } from 'antd';
-import { CheckCircleOutlined, CloseCircleOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Input as AntInput, Button, Space, Divider, Modal, List, Spin, message, Upload } from 'antd';
+import { CheckCircleOutlined, CloseCircleOutlined, PlusOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons';
 import { MarkDownField } from 'src/core/widgets/MarkdownField';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
@@ -122,6 +122,54 @@ const CertificationInput = styled(AntInput)`
   }
 `;
 
+const UploadButton = styled(Upload)`
+  .ant-upload {
+    width: 100%;
+  }
+  
+  .ant-upload-select {
+    width: 100%;
+    border: 1px dashed #555;
+    border-radius: 4px;
+    background: #2a2a2a;
+    color: #ccc;
+    transition: all 0.3s;
+    
+    &:hover {
+      border-color: #1890ff;
+      color: #1890ff;
+    }
+  }
+`;
+
+const UploadIconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  cursor: pointer;
+  border: 1px dashed #555;
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: #ccc;
+  transition: all 0.3s;
+  flex: 1;
+  
+  &:hover {
+    border-color: #1890ff;
+    color: #1890ff;
+  }
+  
+  .upload-icon {
+    font-size: 20px;
+    margin-right: 8px;
+  }
+  
+  .upload-text {
+    font-size: 14px;
+  }
+`;
+
 const AddMoreButton = styled(Button)`
   margin-top: 12px;
   width: 100%;
@@ -139,11 +187,20 @@ const AddMoreButton = styled(Button)`
 const DeleteButton = styled(Button)`
   color: #ff4d4f;
   border-color: #ff4d4f;
+  padding: 4px 8px;
+  min-width: auto;
   
   &:hover {
     color: #ff7875;
     border-color: #ff7875;
   }
+`;
+
+const ErrorText = styled.span`
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
 `;
 
 const CertificateModal = styled(Modal)`
@@ -194,6 +251,8 @@ interface Certification {
   label: string;
   details: string;
   verified: boolean;
+  file?: File | null;
+  error?: string;
 }
 
 export function IntroEdit({ METADATA, state, update }: any) {
@@ -202,8 +261,8 @@ export function IntroEdit({ METADATA, state, update }: any) {
   const [availableCertificates, setAvailableCertificates] = useState<any[]>([]);
   const [loadingCertificates, setLoadingCertificates] = useState(false);
   const [certifications, setCertifications] = useState<Certification[]>([
-    { id: '10th', label: '10th', details: '', verified: false },
-    { id: '12th', label: '12th', details: '', verified: false }
+    { id: '10th', label: '10th', details: '', verified: false, file: null },
+    { id: '12th', label: '12th', details: '', verified: false, file: null }
   ]);
   const [verificationState, setVerificationState] = useState({
     isVerified: false,
@@ -617,7 +676,8 @@ export function IntroEdit({ METADATA, state, update }: any) {
       id: `cert-${Date.now()}`,
       label: certificate.name,
       details: '',
-      verified: false
+      verified: false,
+      file: null
     };
     setCertifications([...certifications, newCert]);
     setShowCertificateModal(false);
@@ -735,47 +795,95 @@ export function IntroEdit({ METADATA, state, update }: any) {
         </VerificationDescription>
         
         <div>
-          {certifications.map((cert, index) => (
-            <CertificationItem key={cert.id}>
-              <FieldLabel style={{ minWidth: '100px' }}>
-                {cert.id === '10th' || cert.id === '12th' ? (
-                  <>
-                    {cert.label}:
-                  </>
-                ) : (
-                  <CertificationInput
-                    placeholder="Certification name"
-                    value={cert.label}
-                    onChange={(e) => {
-                      const updated = [...certifications];
-                      updated[index] = { ...updated[index], label: e.target.value };
-                      setCertifications(updated);
+          {certifications.map((cert, index) => {
+            const handleFileChange = (file: File | null) => {
+              const updated = [...certifications];
+              let error = '';
+              
+              // Validation
+              if (file) {
+                // Check file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                  error = 'File size must be less than 5MB';
+                }
+                // Check file type (only PDF, JPG, PNG)
+                const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                if (!allowedTypes.includes(file.type)) {
+                  error = 'Only PDF, JPG, and PNG files are allowed';
+                }
+              }
+              
+              updated[index] = { 
+                ...updated[index], 
+                file: error ? null : file,
+                error: error || undefined
+              };
+              setCertifications(updated);
+            };
+
+            return (
+              <div key={cert.id}>
+                <CertificationItem>
+                  <FieldLabel style={{ minWidth: '100px' }}>
+                    {cert.id === '10th' || cert.id === '12th' ? (
+                      <>
+                        {cert.label}:
+                      </>
+                    ) : (
+                      <CertificationInput
+                        placeholder="Certification name"
+                        value={cert.label}
+                        onChange={(e) => {
+                          const updated = [...certifications];
+                          const label = e.target.value;
+                          let error = '';
+                          
+                          // Validation for label
+                          if (!label.trim()) {
+                            error = 'Certification name is required';
+                          }
+                          
+                          updated[index] = { 
+                            ...updated[index], 
+                            label,
+                            error: error || undefined
+                          };
+                          setCertifications(updated);
+                        }}
+                        style={{ width: '150px', marginRight: '8px' }}
+                      />
+                    )}
+                  </FieldLabel>
+                  <UploadIconWrapper
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = '.pdf,.jpg,.jpeg,.png';
+                      input.onchange = (e: any) => {
+                        const file = e.target.files?.[0] || null;
+                        handleFileChange(file);
+                      };
+                      input.click();
                     }}
-                    style={{ width: '150px', marginRight: '8px' }}
-                  />
-                )}
-              </FieldLabel>
-              <CertificationInput
-                placeholder={cert.id === '10th' || cert.id === '12th' ? `Enter ${cert.label} details` : 'Enter certification details'}
-                value={cert.details}
-                onChange={(e) => {
-                  const updated = [...certifications];
-                  updated[index] = { ...updated[index], details: e.target.value };
-                  setCertifications(updated);
-                }}
-              />
-              {cert.id !== '10th' && cert.id !== '12th' && (
-                <DeleteButton
-                  icon={<DeleteOutlined />}
-                  onClick={() => {
-                    setCertifications(certifications.filter((_, i) => i !== index));
-                  }}
-                >
-                  Remove
-                </DeleteButton>
-              )}
-            </CertificationItem>
-          ))}
+                  >
+                    <UploadOutlined className="upload-icon" />
+                    <span className="upload-text">
+                      {cert.file ? cert.file.name : 'Upload Certificate'}
+                    </span>
+                  </UploadIconWrapper>
+                  {cert.id !== '10th' && cert.id !== '12th' && (
+                    <DeleteButton
+                      icon={<DeleteOutlined />}
+                      onClick={() => {
+                        setCertifications(certifications.filter((_, i) => i !== index));
+                      }}
+                    />
+                  )}
+                </CertificationItem>
+                {cert.error && <ErrorText>{cert.error}</ErrorText>}
+              </div>
+            );
+          })}
           
           <AddMoreButton
             icon={<PlusOutlined />}
