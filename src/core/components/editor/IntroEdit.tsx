@@ -1,6 +1,6 @@
 import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { Input as AntInput, Button, Space, Divider, Modal, List, Spin, message, Upload } from 'antd';
+import { Input as AntInput, Button, Space, Divider, Modal, List, Spin, message } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, PlusOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons';
 import { MarkDownField } from 'src/core/widgets/MarkdownField';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -119,26 +119,6 @@ const CertificationInput = styled(AntInput)`
   
   &:focus {
     border-color: #1890ff;
-  }
-`;
-
-const UploadButton = styled(Upload)`
-  .ant-upload {
-    width: 100%;
-  }
-  
-  .ant-upload-select {
-    width: 100%;
-    border: 1px dashed #555;
-    border-radius: 4px;
-    background: #2a2a2a;
-    color: #ccc;
-    transition: all 0.3s;
-    
-    &:hover {
-      border-color: #1890ff;
-      color: #1890ff;
-    }
   }
 `;
 
