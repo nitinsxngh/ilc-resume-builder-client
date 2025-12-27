@@ -357,6 +357,30 @@ export function IntroEdit({ METADATA, state, update }: any) {
     return normalized1 === normalized2;
   };
 
+  // Function to compare names - matches if either name contains the other (for partial matching)
+  const compareNames = (name1: string | null | undefined, name2: string | null | undefined): boolean => {
+    const normalized1 = normalizeString(name1);
+    const normalized2 = normalizeString(name2);
+    if (!normalized1 || !normalized2) return false;
+    
+    // Exact match
+    if (normalized1 === normalized2) return true;
+    
+    // Split into words for partial matching
+    const words1 = normalized1.split(/\s+/).filter(w => w.length > 0);
+    const words2 = normalized2.split(/\s+/).filter(w => w.length > 0);
+    
+    // If either name is empty after splitting, return false
+    if (words1.length === 0 || words2.length === 0) return false;
+    
+    // Check if all words from the shorter name exist in the longer name
+    const shorter = words1.length <= words2.length ? words1 : words2;
+    const longer = words1.length > words2.length ? words1 : words2;
+    
+    // Match if all words from shorter name are found in longer name
+    return shorter.every(word => longer.some(longWord => longWord.includes(word) || word.includes(longWord)));
+  };
+
   // Function to compare phone numbers (remove spaces, dashes, parentheses)
   const comparePhoneNumbers = (phone1: string | null | undefined, phone2: string | null | undefined): boolean => {
     if (!phone1 || !phone2) return false;
@@ -375,6 +399,8 @@ export function IntroEdit({ METADATA, state, update }: any) {
     
     if (field === 'phone') {
       return comparePhoneNumbers(resumeValue, verifiedValue);
+    } else if (field === 'name') {
+      return compareNames(resumeValue, verifiedValue);
     } else {
       return compareStrings(resumeValue, verifiedValue);
     }
