@@ -1,6 +1,6 @@
 import React, { Fragment, useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { Input as AntInput, Button, Space, Divider } from 'antd';
+import { Input as AntInput, Button, Space, Divider, Modal, List, Spin, message } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { MarkDownField } from 'src/core/widgets/MarkdownField';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -146,6 +146,49 @@ const DeleteButton = styled(Button)`
   }
 `;
 
+const CertificateModal = styled(Modal)`
+  .ant-modal-content {
+    background: #2a2a2a;
+    color: #fff;
+  }
+  
+  .ant-modal-header {
+    background: #2a2a2a;
+    border-bottom: 1px solid #333;
+    
+    .ant-modal-title {
+      color: #fff;
+    }
+  }
+  
+  .ant-modal-body {
+    background: #2a2a2a;
+    color: #fff;
+  }
+  
+  .ant-list-item {
+    border: 1px solid #333;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    
+    &:hover {
+      background: #333;
+      border-color: #1890ff;
+    }
+  }
+  
+  .ant-list-item-meta-title {
+    color: #fff;
+  }
+  
+  .ant-list-item-meta-description {
+    color: #ccc;
+  }
+`;
+
 interface Certification {
   id: string;
   label: string;
@@ -155,6 +198,9 @@ interface Certification {
 
 export function IntroEdit({ METADATA, state, update }: any) {
   const [showVerificationPopup, setShowVerificationPopup] = useState(false);
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
+  const [availableCertificates, setAvailableCertificates] = useState<any[]>([]);
+  const [loadingCertificates, setLoadingCertificates] = useState(false);
   const [certifications, setCertifications] = useState<Certification[]>([
     { id: '10th', label: '10th', details: '', verified: false },
     { id: '12th', label: '12th', details: '', verified: false }
@@ -458,6 +504,110 @@ export function IntroEdit({ METADATA, state, update }: any) {
     return normalizePhone(phone1) === normalizePhone(phone2);
   };
 
+  // Fetch DigiLocker certificates
+  const fetchDigiLockerCertificates = useCallback(async () => {
+    setLoadingCertificates(true);
+    try {
+      // Check if user has DigiLocker access token stored
+      // Try multiple possible storage keys
+      const digiLockerToken = sessionStorage.getItem('digilocker_access_token') ||
+                              sessionStorage.getItem('meripahachan_access_token') ||
+                              (window as any).__digilockerToken__ ||
+                              null;
+      
+      if (!digiLockerToken) {
+        message.warning('Please verify your identity with DigiLocker first to access certificates. The certificate list will show common certificates.');
+      }
+
+      // Fetch certificates from DigiLocker API
+      const response = await fetch('/api/digilocker/documents', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ accessToken: digiLockerToken })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Common DigiLocker certificate types
+        const commonCertificates = [
+          { name: '10th Marksheet', type: '10th', description: 'Class 10th Board Certificate' },
+          { name: '12th Marksheet', type: '12th', description: 'Class 12th Board Certificate' },
+          { name: 'Degree Certificate', type: 'degree', description: 'Graduation Degree Certificate' },
+          { name: 'Diploma Certificate', type: 'diploma', description: 'Diploma Certificate' },
+          { name: 'ITI Certificate', type: 'iti', description: 'ITI Certificate' },
+          { name: 'Driving License', type: 'driving', description: 'Driving License' },
+          { name: 'Aadhaar Card', type: 'aadhaar', description: 'Aadhaar Card' },
+          { name: 'PAN Card', type: 'pan', description: 'PAN Card' },
+          { name: 'Voter ID', type: 'voter', description: 'Voter ID Card' },
+          { name: 'Birth Certificate', type: 'birth', description: 'Birth Certificate' },
+          ...(data.documents || [])
+        ];
+        setAvailableCertificates(commonCertificates);
+      } else {
+        // Fallback to common certificates if API fails
+        const commonCertificates = [
+          { name: '10th Marksheet', type: '10th', description: 'Class 10th Board Certificate' },
+          { name: '12th Marksheet', type: '12th', description: 'Class 12th Board Certificate' },
+          { name: 'Degree Certificate', type: 'degree', description: 'Graduation Degree Certificate' },
+          { name: 'Diploma Certificate', type: 'diploma', description: 'Diploma Certificate' },
+          { name: 'ITI Certificate', type: 'iti', description: 'ITI Certificate' },
+          { name: 'Driving License', type: 'driving', description: 'Driving License' },
+          { name: 'Aadhaar Card', type: 'aadhaar', description: 'Aadhaar Card' },
+          { name: 'PAN Card', type: 'pan', description: 'PAN Card' },
+          { name: 'Voter ID', type: 'voter', description: 'Voter ID Card' },
+          { name: 'Birth Certificate', type: 'birth', description: 'Birth Certificate' }
+        ];
+        setAvailableCertificates(commonCertificates);
+      }
+    } catch (error) {
+      console.error('Error fetching DigiLocker certificates:', error);
+      // Fallback to common certificates
+      const commonCertificates = [
+        { name: '10th Marksheet', type: '10th', description: 'Class 10th Board Certificate' },
+        { name: '12th Marksheet', type: '12th', description: 'Class 12th Board Certificate' },
+        { name: 'Degree Certificate', type: 'degree', description: 'Graduation Degree Certificate' },
+        { name: 'Diploma Certificate', type: 'diploma', description: 'Diploma Certificate' },
+        { name: 'ITI Certificate', type: 'iti', description: 'ITI Certificate' },
+        { name: 'Driving License', type: 'driving', description: 'Driving License' },
+        { name: 'Aadhaar Card', type: 'aadhaar', description: 'Aadhaar Card' },
+        { name: 'PAN Card', type: 'pan', description: 'PAN Card' },
+        { name: 'Voter ID', type: 'voter', description: 'Voter ID Card' },
+        { name: 'Birth Certificate', type: 'birth', description: 'Birth Certificate' }
+      ];
+      setAvailableCertificates(commonCertificates);
+    } finally {
+      setLoadingCertificates(false);
+    }
+  }, []);
+
+  // Handle certificate selection
+  const handleCertificateSelect = (certificate: any) => {
+    // Check if certificate already exists
+    const exists = certifications.some(cert => cert.label.toLowerCase() === certificate.name.toLowerCase());
+    if (exists) {
+      message.warning('This certificate is already added');
+      return;
+    }
+
+    const newCert: Certification = {
+      id: `cert-${Date.now()}`,
+      label: certificate.name,
+      details: '',
+      verified: false
+    };
+    setCertifications([...certifications, newCert]);
+    setShowCertificateModal(false);
+    message.success(`${certificate.name} added successfully`);
+  };
+
+  // Handle "Add More" button click
+  const handleAddMoreClick = () => {
+    setShowCertificateModal(true);
+    fetchDigiLockerCertificates();
+  };
+
   // Check if fields match with verified data
   const checkFieldMatch = (field: 'name' | 'email' | 'phone'): boolean => {
     if (!verificationState.verifiedData) return false;
@@ -607,15 +757,7 @@ export function IntroEdit({ METADATA, state, update }: any) {
           
           <AddMoreButton
             icon={<PlusOutlined />}
-            onClick={() => {
-              const newCert: Certification = {
-                id: `cert-${Date.now()}`,
-                label: '',
-                details: '',
-                verified: false
-              };
-              setCertifications([...certifications, newCert]);
-            }}
+            onClick={handleAddMoreClick}
           >
             Add More Certification
           </AddMoreButton>
@@ -660,6 +802,36 @@ export function IntroEdit({ METADATA, state, update }: any) {
           address: state.location?.address || ''
         }}
       />
+
+      <CertificateModal
+        title="Select Certificate from DigiLocker"
+        visible={showCertificateModal}
+        onCancel={() => setShowCertificateModal(false)}
+        footer={null}
+        width={600}
+      >
+        {loadingCertificates ? (
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <Spin size="large" />
+            <p style={{ color: '#ccc', marginTop: '16px' }}>Loading certificates from DigiLocker...</p>
+          </div>
+        ) : (
+          <List
+            dataSource={availableCertificates}
+            renderItem={(certificate) => (
+              <List.Item
+                onClick={() => handleCertificateSelect(certificate)}
+                style={{ cursor: 'pointer' }}
+              >
+                <List.Item.Meta
+                  title={<span style={{ color: '#fff' }}>{certificate.name}</span>}
+                  description={<span style={{ color: '#ccc' }}>{certificate.description || certificate.type}</span>}
+                />
+              </List.Item>
+            )}
+          />
+        )}
+      </CertificateModal>
     </>
   );
 }
