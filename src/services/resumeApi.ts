@@ -534,27 +534,27 @@ class ResumeApiService {
     if (!resume) return false;
     
     // Check if basics has meaningful data
-    const hasBasics = resume.basics && (
-      resume.basics.name?.trim() ||
-      resume.basics.email?.trim() ||
-      resume.basics.phone?.trim() ||
-      resume.basics.summary?.trim()
-    );
+    const hasBasics = !!(resume.basics && (
+      (resume.basics.name && resume.basics.name.trim()) ||
+      (resume.basics.email && resume.basics.email.trim()) ||
+      (resume.basics.phone && resume.basics.phone.trim()) ||
+      (resume.basics.summary && resume.basics.summary.trim())
+    ));
     
     // Check if work experience exists
-    const hasWork = resume.work && resume.work.length > 0 && 
-      resume.work.some((w: any) => w.company?.trim() || w.position?.trim());
+    const hasWork = !!(resume.work && resume.work.length > 0 && 
+      resume.work.some((w: any) => (w.company && w.company.trim()) || (w.position && w.position.trim())));
     
     // Check if education exists
-    const hasEducation = resume.education && resume.education.length > 0 &&
-      resume.education.some((e: any) => e.institution?.trim() || e.area?.trim());
+    const hasEducation = !!(resume.education && resume.education.length > 0 &&
+      resume.education.some((e: any) => (e.institution && e.institution.trim()) || (e.area && e.area.trim())));
     
     // Check if skills exist
-    const hasSkills = resume.skills && (
+    const hasSkills = !!(resume.skills && (
       (resume.skills.languages && resume.skills.languages.length > 0) ||
       (resume.skills.frameworks && resume.skills.frameworks.length > 0) ||
       (resume.skills.technologies && resume.skills.technologies.length > 0)
-    );
+    ));
     
     return hasBasics || hasWork || hasEducation || hasSkills;
   }
