@@ -24,9 +24,13 @@ if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount as admin.ServiceAccount)
       });
+      console.log('✅ Firebase Admin initialized successfully');
+    } else {
+      console.error('❌ Firebase Admin initialization failed: Missing required environment variables');
+      console.error('Required: FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL');
     }
   } catch (error: any) {
-    console.error('Firebase Admin initialization error:', error.message);
+    console.error('❌ Firebase Admin initialization error:', error.message);
   }
 }
 
@@ -55,10 +59,13 @@ export async function verifyAuth(
     const token = authHeader.split('Bearer ')[1];
 
     if (!admin.apps.length) {
-      // Development fallback
-      console.warn('⚠️  Firebase Admin not initialized, using dev user');
-      req.user = { uid: 'dev-user', email: 'dev@example.com' };
-      return true;
+      // Firebase Admin not initialized - this should not happen in production
+      console.error('❌ Firebase Admin not initialized. Please check your environment variables.');
+      res.status(500).json({
+        success: false,
+        error: 'Authentication service not configured. Please check server configuration.'
+      });
+      return false;
     }
 
     try {
@@ -67,6 +74,7 @@ export async function verifyAuth(
         uid: decodedToken.uid,
         email: decodedToken.email
       };
+      console.log('✅ User authenticated:', { uid: decodedToken.uid, email: decodedToken.email });
       return true;
     } catch (error: any) {
       console.error('Token verification error:', error);
