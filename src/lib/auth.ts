@@ -29,10 +29,18 @@ if (!admin.apps.length) {
         console.log('✅ Firebase Admin initialized successfully');
       }
     } else {
-      // Only log error in production, suppress in development (expected behavior)
-      if (process.env.NODE_ENV === 'production') {
+      // Provide helpful debugging info in development
+      if (process.env.NODE_ENV === 'development' && process.env.DEBUG_FIREBASE === 'true') {
+        console.log('⚠️  Firebase Admin not initialized. Debug info:');
+        console.log('  - FIREBASE_PROJECT_ID:', serviceAccount.projectId ? '✓ Set' : '✗ Missing');
+        console.log('  - FIREBASE_PRIVATE_KEY:', serviceAccount.privateKey ? '✓ Set' : '✗ Missing');
+        console.log('  - FIREBASE_CLIENT_EMAIL:', serviceAccount.clientEmail ? '✓ Set' : '✗ Missing');
+        console.log('  - Note: These should be in root .env (NOT prefixed with NEXT_PUBLIC_)');
+        console.log('  - Development mode will use unverified token decoding');
+      } else if (process.env.NODE_ENV === 'production') {
         console.error('❌ Firebase Admin initialization failed: Missing required environment variables');
         console.error('Required: FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL');
+        console.error('Note: These must be in root .env file (NOT prefixed with NEXT_PUBLIC_)');
       }
     }
   } catch (error: any) {
