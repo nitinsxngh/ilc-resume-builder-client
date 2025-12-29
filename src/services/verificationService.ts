@@ -432,6 +432,28 @@ class VerificationService {
         sessionStorage.removeItem('verification_state');
       }
 
+      // Ensure complete profile data is preserved in rawData
+      const completeRawData = {
+        verifiedName,
+        verifiedEmail,
+        verifiedPhone,
+        verifiedPan,
+        verifiedAadhaar,
+        verifiedAddress,
+        resumeName,
+        nameMatch: resumeName ? nameMatch : true,
+        // Store complete DigiLocker profile data
+        profileData: profileData || {},
+        // Also store individual fields for easy access
+        digilockerid: profileData?.digilockerid || profileData?.sub || '',
+        dob: profileData?.dob || '',
+        gender: profileData?.gender || '',
+        eaadhaar: profileData?.eaadhaar || '',
+        reference_key: profileData?.reference_key || '',
+        // Store the complete raw profile response
+        fullProfile: profileData || {}
+      };
+
       return {
         success: isSuccessful,
         data: {
@@ -439,17 +461,7 @@ class VerificationService {
           verificationDate: new Date().toISOString(),
           verifiedFields,
           confidence: nameMatch && verifiedName ? 0.95 : 0.85,
-          rawData: {
-            verifiedName,
-            verifiedEmail,
-            verifiedPhone,
-            verifiedPan,
-            verifiedAadhaar,
-            verifiedAddress,
-            resumeName,
-            nameMatch: resumeName ? nameMatch : true,
-            profileData
-          }
+          rawData: completeRawData
         },
         message: verifiedName 
           ? `Verification successful! Name: ${verifiedName}` 
