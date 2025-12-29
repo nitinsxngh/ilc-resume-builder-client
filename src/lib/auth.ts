@@ -59,7 +59,27 @@ export async function verifyAuth(
     const token = authHeader.split('Bearer ')[1];
 
     if (!admin.apps.length) {
-      // Firebase Admin not initialized - this should not happen in production
+      // Development mode: Try to extract user ID from token payload without verification
+      // This allows development to work without Firebase Admin setup
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          // Decode JWT token without verification (for development only)
+          const tokenParts = token.split('.');
+          if (tokenParts.length === 3) {
+            const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+            req.user = {
+              uid: payload.user_id || payload.sub || payload.uid || 'dev-user-' + Date.now(),
+              email: payload.email || payload.email_address
+            };
+            console.warn('⚠️  Development mode: Using unverified token. User ID:', req.user.uid);
+            return true;
+          }
+        } catch (decodeError) {
+          console.error('Failed to decode token in dev mode:', decodeError);
+        }
+      }
+      
+      // Production mode: Firebase Admin must be initialized
       console.error('❌ Firebase Admin not initialized. Please check your environment variables.');
       res.status(500).json({
         success: false,
