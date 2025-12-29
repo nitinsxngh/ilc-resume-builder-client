@@ -24,13 +24,22 @@ if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount as admin.ServiceAccount)
       });
-      console.log('✅ Firebase Admin initialized successfully');
+      // Only log in production or when explicitly debugging
+      if (process.env.NODE_ENV === 'production' || process.env.DEBUG_FIREBASE === 'true') {
+        console.log('✅ Firebase Admin initialized successfully');
+      }
     } else {
-      console.error('❌ Firebase Admin initialization failed: Missing required environment variables');
-      console.error('Required: FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL');
+      // Only log error in production, suppress in development (expected behavior)
+      if (process.env.NODE_ENV === 'production') {
+        console.error('❌ Firebase Admin initialization failed: Missing required environment variables');
+        console.error('Required: FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL');
+      }
     }
   } catch (error: any) {
-    console.error('❌ Firebase Admin initialization error:', error.message);
+    // Only log error in production
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ Firebase Admin initialization error:', error.message);
+    }
   }
 }
 
@@ -71,11 +80,14 @@ export async function verifyAuth(
               uid: payload.user_id || payload.sub || payload.uid || 'dev-user-' + Date.now(),
               email: payload.email || payload.email_address
             };
-            console.warn('⚠️  Development mode: Using unverified token. User ID:', req.user.uid);
+            // Silent in development - this is expected behavior
             return true;
           }
         } catch (decodeError) {
-          console.error('Failed to decode token in dev mode:', decodeError);
+          // Only log actual errors, not expected dev mode behavior
+          if (process.env.DEBUG_AUTH === 'true') {
+            console.error('Failed to decode token in dev mode:', decodeError);
+          }
         }
       }
       
@@ -94,7 +106,10 @@ export async function verifyAuth(
         uid: decodedToken.uid,
         email: decodedToken.email
       };
-      console.log('✅ User authenticated:', { uid: decodedToken.uid, email: decodedToken.email });
+      // Only log authentication in development or for debugging
+      if (process.env.NODE_ENV === 'development' && process.env.DEBUG_AUTH === 'true') {
+        console.log('✅ User authenticated:', { uid: decodedToken.uid, email: decodedToken.email });
+      }
       return true;
     } catch (error: any) {
       console.error('Token verification error:', error);
