@@ -529,6 +529,36 @@ class ResumeApiService {
     };
   }
 
+  // Check if resume has meaningful data (not just empty/default values)
+  private hasResumeData(resume: ResumeData): boolean {
+    if (!resume) return false;
+    
+    // Check if basics has meaningful data
+    const hasBasics = resume.basics && (
+      resume.basics.name?.trim() ||
+      resume.basics.email?.trim() ||
+      resume.basics.phone?.trim() ||
+      resume.basics.summary?.trim()
+    );
+    
+    // Check if work experience exists
+    const hasWork = resume.work && resume.work.length > 0 && 
+      resume.work.some((w: any) => w.company?.trim() || w.position?.trim());
+    
+    // Check if education exists
+    const hasEducation = resume.education && resume.education.length > 0 &&
+      resume.education.some((e: any) => e.institution?.trim() || e.area?.trim());
+    
+    // Check if skills exist
+    const hasSkills = resume.skills && (
+      (resume.skills.languages && resume.skills.languages.length > 0) ||
+      (resume.skills.frameworks && resume.skills.frameworks.length > 0) ||
+      (resume.skills.technologies && resume.skills.technologies.length > 0)
+    );
+    
+    return hasBasics || hasWork || hasEducation || hasSkills;
+  }
+
   // Sync local data with backend
   async syncLocalData(localData: any): Promise<ResumeData> {
     try {
@@ -539,15 +569,21 @@ class ResumeApiService {
         existingResume = await this.getDefaultResume();
       } catch (error) {
         // No existing resume, create new one
+        console.log('No existing resume found, creating new one');
       }
 
-      if (existingResume && existingResume._id) {
-        // Update existing resume with properly formatted data
-        const apiFormatData = this.convertLocalDataToApiFormat(localData);
+      // Check if existing resume has meaningful data
+      const hasData = existingResume && this.hasResumeData(existingResume);
+      
+      const apiFormatData = this.convertLocalDataToApiFormat(localData);
+      
+      if (existingResume && existingResume._id && hasData) {
+        // Update existing resume only if it has meaningful data
+        console.log('Updating existing resume with data');
         return await this.updateResume(existingResume._id, apiFormatData);
       } else {
-        // Create new resume
-        const apiFormatData = this.convertLocalDataToApiFormat(localData);
+        // Create new resume if no existing resume or existing resume is empty
+        console.log('Creating new resume');
         return await this.createResume(apiFormatData);
       }
     } catch (error) {
