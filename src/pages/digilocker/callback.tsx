@@ -105,24 +105,78 @@ export default function DigiLockerCallbackPage() {
           
           // Save verification data to backend (non-blocking - don't wait for it)
           resumeApiService.getDefaultResume()
-            .then(defaultResume => {
-              if (defaultResume && defaultResume._id) {
-                return resumeApiService.saveVerificationData(defaultResume._id, {
-                  isVerified: true,
-                  verifiedBy: verificationData.verifiedBy,
-                  verificationDate: verificationData.verificationDate,
-                  verifiedFields: verificationData.verifiedFields || [],
-                  confidence: verificationData.confidence,
-                  verifiedData: {
+            .then(async (defaultResume) => {
+              let resumeId: string;
+              
+              // If no default resume exists, create one first
+              if (!defaultResume || !defaultResume._id) {
+                console.log('No default resume found, creating new resume for verification data');
+                const newResume = await resumeApiService.createResume({
+                  title: 'My Resume',
+                  template: 'professional',
+                  theme: 'default',
+                  isDefault: true,
+                  basics: {
                     name: verificationData.rawData?.verifiedName || '',
                     email: verificationData.rawData?.verifiedEmail || '',
                     phone: verificationData.rawData?.verifiedPhone || '',
-                    aadhaar: verificationData.rawData?.verifiedAadhaar || '',
-                    pan: verificationData.rawData?.verifiedPan || '',
-                    address: verificationData.rawData?.verifiedAddress || ''
-                  }
+                    label: '',
+                    image: '',
+                    url: '',
+                    summary: '',
+                    location: {
+                      address: verificationData.rawData?.verifiedAddress || '',
+                      postalCode: '',
+                      city: '',
+                      countryCode: '',
+                      region: ''
+                    },
+                    relExp: '',
+                    totalExp: '',
+                    objective: '',
+                    profiles: []
+                  },
+                  skills: {
+                    languages: [],
+                    frameworks: [],
+                    libraries: [],
+                    databases: [],
+                    technologies: [],
+                    practices: [],
+                    tools: []
+                  },
+                  work: [],
+                  education: [],
+                  activities: {
+                    involvements: '',
+                    achievements: ''
+                  },
+                  volunteer: [],
+                  awards: [],
+                  labels: { labels: [] },
+                  isPublic: false
                 });
+                resumeId = newResume._id!;
+              } else {
+                resumeId = defaultResume._id;
               }
+              
+              // Save verification data
+              return resumeApiService.saveVerificationData(resumeId, {
+                isVerified: true,
+                verifiedBy: verificationData.verifiedBy,
+                verificationDate: verificationData.verificationDate,
+                verifiedFields: verificationData.verifiedFields || [],
+                confidence: verificationData.confidence,
+                verifiedData: {
+                  name: verificationData.rawData?.verifiedName || '',
+                  email: verificationData.rawData?.verifiedEmail || '',
+                  phone: verificationData.rawData?.verifiedPhone || '',
+                  aadhaar: verificationData.rawData?.verifiedAadhaar || '',
+                  pan: verificationData.rawData?.verifiedPan || '',
+                  address: verificationData.rawData?.verifiedAddress || ''
+                }
+              });
             })
             .then(() => {
               console.log('Verification data saved to backend successfully');
