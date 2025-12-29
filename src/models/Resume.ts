@@ -18,6 +18,7 @@ export interface IVerification {
     pan?: string;
     address?: string;
   };
+  rawData?: any; // Store complete DigiLocker raw response
 }
 
 export interface IResume extends Document {
@@ -119,7 +120,8 @@ const verificationSchema = new Schema<IVerification>({
     aadhaar: String,
     pan: String,
     address: String
-  }
+  },
+  rawData: { type: Schema.Types.Mixed, default: null } // Store complete DigiLocker raw response
 }, { _id: false });
 
 const resumeSchema = new Schema<IResume>({

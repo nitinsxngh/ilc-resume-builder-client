@@ -92,6 +92,93 @@ export default function DigiLockerCallbackPage() {
         const result = await verificationService.handleMeriPahachanCallback(codeValue, stateValue || '');
         console.log('Callback result:', result);
 
+        // Save raw data regardless of verification success/failure
+        const saveRawData = async () => {
+          try {
+            const defaultResume = await resumeApiService.getDefaultResume();
+            let resumeId: string;
+            
+            const verificationData = result.data || null;
+            const rawData = verificationData?.rawData || {};
+            
+            // If no default resume exists, create one first
+            if (!defaultResume || !defaultResume._id) {
+              console.log('No default resume found, creating new resume for verification data');
+              const newResume = await resumeApiService.createResume({
+                title: 'My Resume',
+                template: 'professional',
+                theme: 'default',
+                isDefault: true,
+                basics: {
+                  name: (rawData as any)?.verifiedName || '',
+                  email: (rawData as any)?.verifiedEmail || '',
+                  phone: (rawData as any)?.verifiedPhone || '',
+                  label: '',
+                  image: '',
+                  url: '',
+                  summary: '',
+                  location: {
+                    address: (rawData as any)?.verifiedAddress || '',
+                    postalCode: '',
+                    city: '',
+                    countryCode: '',
+                    region: ''
+                  },
+                  relExp: '',
+                  totalExp: '',
+                  objective: '',
+                  profiles: []
+                },
+                skills: {
+                  languages: [],
+                  frameworks: [],
+                  libraries: [],
+                  databases: [],
+                  technologies: [],
+                  practices: [],
+                  tools: []
+                },
+                work: [],
+                education: [],
+                activities: {
+                  involvements: '',
+                  achievements: ''
+                },
+                volunteer: [],
+                awards: [],
+                labels: { labels: [] },
+                isPublic: false
+              });
+              resumeId = newResume._id!;
+            } else {
+              resumeId = defaultResume._id;
+            }
+            
+            // Save verification data with raw data (whether verified or not)
+            await resumeApiService.saveVerificationData(resumeId, {
+              isVerified: result.success && (verificationData?.verifiedFields?.length || 0) > 0,
+              verifiedBy: verificationData?.verifiedBy || (result.success ? 'MeriPahachan (DigiLocker)' : undefined),
+              verificationDate: verificationData?.verificationDate || new Date().toISOString(),
+              verifiedFields: verificationData?.verifiedFields || [],
+              confidence: verificationData?.confidence || 0,
+              verifiedData: {
+                name: (rawData as any)?.verifiedName || '',
+                email: (rawData as any)?.verifiedEmail || '',
+                phone: (rawData as any)?.verifiedPhone || '',
+                aadhaar: (rawData as any)?.verifiedAadhaar || '',
+                pan: (rawData as any)?.verifiedPan || '',
+                address: (rawData as any)?.verifiedAddress || ''
+              },
+              rawData: rawData // Store complete raw data
+            });
+            
+            console.log('DigiLocker raw data saved to backend successfully');
+          } catch (error) {
+            console.error('Error saving DigiLocker raw data to backend:', error);
+            // Don't fail the verification if backend save fails
+          }
+        };
+
         if (result.success && result.data) {
           const verificationData = result.data;
           setStatus('success');
@@ -104,87 +191,7 @@ export default function DigiLockerCallbackPage() {
           }
           
           // Save verification data to backend (non-blocking - don't wait for it)
-          resumeApiService.getDefaultResume()
-            .then(async (defaultResume) => {
-              let resumeId: string;
-              
-              // If no default resume exists, create one first
-              if (!defaultResume || !defaultResume._id) {
-                console.log('No default resume found, creating new resume for verification data');
-                const newResume = await resumeApiService.createResume({
-                  title: 'My Resume',
-                  template: 'professional',
-                  theme: 'default',
-                  isDefault: true,
-                  basics: {
-                    name: verificationData.rawData?.verifiedName || '',
-                    email: verificationData.rawData?.verifiedEmail || '',
-                    phone: verificationData.rawData?.verifiedPhone || '',
-                    label: '',
-                    image: '',
-                    url: '',
-                    summary: '',
-                    location: {
-                      address: verificationData.rawData?.verifiedAddress || '',
-                      postalCode: '',
-                      city: '',
-                      countryCode: '',
-                      region: ''
-                    },
-                    relExp: '',
-                    totalExp: '',
-                    objective: '',
-                    profiles: []
-                  },
-                  skills: {
-                    languages: [],
-                    frameworks: [],
-                    libraries: [],
-                    databases: [],
-                    technologies: [],
-                    practices: [],
-                    tools: []
-                  },
-                  work: [],
-                  education: [],
-                  activities: {
-                    involvements: '',
-                    achievements: ''
-                  },
-                  volunteer: [],
-                  awards: [],
-                  labels: { labels: [] },
-                  isPublic: false
-                });
-                resumeId = newResume._id!;
-              } else {
-                resumeId = defaultResume._id;
-              }
-              
-              // Save verification data
-              return resumeApiService.saveVerificationData(resumeId, {
-                isVerified: true,
-                verifiedBy: verificationData.verifiedBy,
-                verificationDate: verificationData.verificationDate,
-                verifiedFields: verificationData.verifiedFields || [],
-                confidence: verificationData.confidence,
-                verifiedData: {
-                  name: verificationData.rawData?.verifiedName || '',
-                  email: verificationData.rawData?.verifiedEmail || '',
-                  phone: verificationData.rawData?.verifiedPhone || '',
-                  aadhaar: verificationData.rawData?.verifiedAadhaar || '',
-                  pan: verificationData.rawData?.verifiedPan || '',
-                  address: verificationData.rawData?.verifiedAddress || ''
-                }
-              });
-            })
-            .then(() => {
-              console.log('Verification data saved to backend successfully');
-            })
-            .catch(error => {
-              console.error('Error saving verification data to backend:', error);
-              // Don't fail the verification if backend save fails
-            });
+          saveRawData();
           
           // Redirect to editor immediately (reduced delay for better UX)
           setTimeout(() => {
@@ -196,6 +203,11 @@ export default function DigiLockerCallbackPage() {
           setMessageText(errorMsg);
           console.error('Verification failed:', errorMsg, result);
           message.error(errorMsg);
+          
+          // Save raw data even if verification failed
+          if (result.data) {
+            saveRawData();
+          }
           
           setTimeout(() => {
             router.push('/editor');

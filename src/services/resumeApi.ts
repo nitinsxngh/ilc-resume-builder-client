@@ -482,6 +482,7 @@ class ResumeApiService {
       pan?: string;
       address?: string;
     };
+    rawData?: any; // Complete DigiLocker raw response
   }): Promise<ResumeData> {
     try {
       const headers = await this.getAuthHeaders();
