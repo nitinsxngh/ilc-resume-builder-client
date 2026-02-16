@@ -54,10 +54,10 @@ export default async function handler(
     }
 
     const documentsData = await response.json();
-    console.log('Documents fetched successfully');
+    console.log('Documents fetched successfully:', documentsData);
 
     // Transform DigiLocker documents to our format
-    // Filter to only include educational certificates and exclude 10th, 12th, and non-educational documents
+    // Filter to only include educational certificates (including 10th/12th marksheets)
     const documents = (documentsData.files || documentsData.documents || [])
       .map((file: any) => ({
         name: file.name || file.title || file.doctype || 'Certificate',
@@ -69,10 +69,8 @@ export default async function handler(
       .filter((doc: any) => {
         const docName = doc.name.toLowerCase();
         const docType = doc.type.toLowerCase();
-        // Exclude 10th, 12th, and non-educational documents
-        return !docName.includes('10th') && 
-               !docName.includes('12th') && 
-               !docName.includes('driving') &&
+        // Exclude non-educational documents
+        return !docName.includes('driving') &&
                !docName.includes('aadhaar') &&
                !docName.includes('pan') &&
                !docName.includes('voter') &&

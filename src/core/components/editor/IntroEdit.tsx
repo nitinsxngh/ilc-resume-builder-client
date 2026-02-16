@@ -569,8 +569,11 @@ export function IntroEdit({ METADATA, state, update }: any) {
 
       if (response.ok) {
         const data = await response.json();
-        // Filter only educational certificates and exclude 10th and 12th
+        console.log('DigiLocker documents response:', data);
+        // Filter only educational certificates (including 10th/12th marksheets)
         const educationalCertificates = [
+          { name: '10th Marksheet', type: '10th', description: 'Class 10 Marksheet' },
+          { name: '12th Marksheet', type: '12th', description: 'Class 12 Marksheet' },
           { name: 'Degree Certificate', type: 'degree', description: 'Graduation Degree Certificate' },
           { name: 'Diploma Certificate', type: 'diploma', description: 'Diploma Certificate' },
           { name: 'ITI Certificate', type: 'iti', description: 'ITI Certificate' },
@@ -581,14 +584,12 @@ export function IntroEdit({ METADATA, state, update }: any) {
           { name: 'Technical Certificate', type: 'technical', description: 'Technical Certificate' }
         ];
         
-        // Filter DigiLocker documents to only include educational ones and exclude 10th/12th
+        // Filter DigiLocker documents to only include educational ones (including 10th/12th)
         const digiLockerDocs = (data.documents || []).filter((doc: any) => {
           const docName = (doc.name || doc.title || '').toLowerCase();
           const docType = (doc.type || doc.doctype || '').toLowerCase();
-          // Exclude 10th, 12th, and non-educational documents
-          return !docName.includes('10th') && 
-                 !docName.includes('12th') && 
-                 !docName.includes('driving') &&
+          // Exclude non-educational documents
+          return !docName.includes('driving') &&
                  !docName.includes('aadhaar') &&
                  !docName.includes('pan') &&
                  !docName.includes('voter') &&
@@ -606,6 +607,8 @@ export function IntroEdit({ METADATA, state, update }: any) {
       } else {
         // Fallback to educational certificates only if API fails
         const educationalCertificates = [
+          { name: '10th Marksheet', type: '10th', description: 'Class 10 Marksheet' },
+          { name: '12th Marksheet', type: '12th', description: 'Class 12 Marksheet' },
           { name: 'Degree Certificate', type: 'degree', description: 'Graduation Degree Certificate' },
           { name: 'Diploma Certificate', type: 'diploma', description: 'Diploma Certificate' },
           { name: 'ITI Certificate', type: 'iti', description: 'ITI Certificate' },
@@ -621,6 +624,8 @@ export function IntroEdit({ METADATA, state, update }: any) {
       console.error('Error fetching DigiLocker certificates:', error);
       // Fallback to educational certificates only
       const educationalCertificates = [
+        { name: '10th Marksheet', type: '10th', description: 'Class 10 Marksheet' },
+        { name: '12th Marksheet', type: '12th', description: 'Class 12 Marksheet' },
         { name: 'Degree Certificate', type: 'degree', description: 'Graduation Degree Certificate' },
         { name: 'Diploma Certificate', type: 'diploma', description: 'Diploma Certificate' },
         { name: 'ITI Certificate', type: 'iti', description: 'ITI Certificate' },
