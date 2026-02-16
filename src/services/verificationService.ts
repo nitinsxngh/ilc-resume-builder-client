@@ -82,6 +82,13 @@ class VerificationService {
     const defaultRedirectUri = 'https://resumebuilder.ilc.limited/digilocker/callback';
     const redirectUri = process.env.NEXT_PUBLIC_MERIPAHACHAN_REDIRECT_URI || defaultRedirectUri;
     
+    // Allow overriding scopes via env (comma/space separated). Default includes DigiLocker "read".
+    const scopesFromEnv = (process.env.NEXT_PUBLIC_MERIPAHACHAN_SCOPES || '')
+      .split(/[,\s]+/)
+      .map(scope => scope.trim())
+      .filter(Boolean);
+    const meriPahachanScopes = scopesFromEnv.length > 0 ? scopesFromEnv : ['userdetails', 'read'];
+
     this.meriPahachanConfig = {
       clientId: process.env.NEXT_PUBLIC_MERIPAHACHAN_CLIENT_ID || 'DT9A677087',
       clientSecret: process.env.NEXT_PUBLIC_MERIPAHACHAN_CLIENT_SECRET || process.env.MERIPAHACHAN_CLIENT_SECRET || '',
@@ -89,9 +96,7 @@ class VerificationService {
       authUrl: process.env.NEXT_PUBLIC_MERIPAHACHAN_AUTH_URL || `${baseUrl}/authorize`,
       tokenUrl: process.env.MERIPAHACHAN_TOKEN_URL || `${baseUrl}/token`,
       userinfoUrl: process.env.MERIPAHACHAN_USERINFO_URL || `${oauth1BaseUrl}/user`,
-      scopes: [
-        'userdetails'
-      ]
+      scopes: meriPahachanScopes
     };
     
     console.log('MeriPahachan config initialized:', {
