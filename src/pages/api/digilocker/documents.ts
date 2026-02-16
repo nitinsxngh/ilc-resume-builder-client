@@ -55,7 +55,7 @@ export default async function handler(
     const documentsData = await response.json();
     console.log('Documents fetched successfully:', documentsData);
 
-    // Transform DigiLocker documents to our format
+    // Transform DigiLocker documents to our format (check)
     // Filter to only include educational certificates (including 10th/12th marksheets)
     const documents = (documentsData.files || documentsData.documents || [])
       .map((file: any) => ({
