@@ -21,11 +21,8 @@ export default async function handler(
       return res.status(400).json({ error: 'Missing access token' });
     }
 
-    // DigiLocker API endpoint for fetching documents
-    // Use public oauth2 files endpoint per DigiLocker spec
-    const documentsUrl = process.env.NODE_ENV === 'production'
-      ? 'https://digilocker.gov.in/public/oauth2/1/files'
-      : 'https://sandbox.digilocker.gov.in/public/oauth2/1/files';
+    // DigiLocker API endpoint for fetching documents (MeriPehchaan)
+    const documentsUrl = 'https://digilocker.meripehchaan.gov.in/public/oauth2/2/files';
 
     console.log('Fetching documents from DigiLocker:', {
       documentsUrl,
