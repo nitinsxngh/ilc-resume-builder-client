@@ -33,22 +33,45 @@ export default async function handler(
       hasAccessToken: !!accessToken
     });
 
-    // Fetch documents from DigiLocker API
-    const response = await fetch(documentsUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json'
+    const fetchWithRetry = async (attempts: number) => {
+      let lastErrorText = '';
+      for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        const response = await fetch(documentsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          return { response };
+        }
+
+        lastErrorText = await response.text();
+        console.error('Documents fetch failed:', response.status, lastErrorText);
+
+        // Retry only on transient upstream errors
+        if (![502, 503, 504].includes(response.status) || attempt === attempts) {
+          return { response, errorText: lastErrorText };
+        }
+
+        // Backoff before retrying
+        await new Promise(resolve => setTimeout(resolve, 500 * attempt));
       }
-    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Documents fetch failed:', response.status, errorText);
+      return { response: null, errorText: lastErrorText };
+    };
 
-      return res.status(response.status).json({ 
+    // Fetch documents from DigiLocker API (retry on 5xx)
+    const { response, errorText } = await fetchWithRetry(3);
+
+    if (!response || !response.ok) {
+      const status = response?.status || 503;
+      return res.status(status).json({ 
         error: 'Documents fetch failed',
-        details: errorText
+        status,
+        details: errorText || 'Upstream error'
       });
     }
 

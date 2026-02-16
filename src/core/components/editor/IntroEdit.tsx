@@ -607,7 +607,8 @@ export function IntroEdit({ METADATA, state, update }: any) {
       } else {
         const errorBody = await response.json().catch(async () => ({ details: await response.text() }));
         console.error('DigiLocker documents fetch failed:', errorBody);
-        message.error(errorBody?.details || errorBody?.error || 'Failed to fetch DigiLocker documents');
+        const statusInfo = errorBody?.status ? ` (status ${errorBody.status})` : '';
+        message.error(`${errorBody?.details || errorBody?.error || 'Failed to fetch DigiLocker documents'}${statusInfo}`);
         // Fallback to educational certificates only if API fails
         const educationalCertificates = [
           { name: '10th Marksheet', type: '10th', description: 'Class 10 Marksheet' },
