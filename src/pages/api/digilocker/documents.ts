@@ -22,11 +22,10 @@ export default async function handler(
     }
 
     // DigiLocker API endpoint for fetching documents
-    // Note: This endpoint may vary based on DigiLocker API version
-    // Common endpoints:
-    // - /api/v1/files/list (for listing all files)
-    // - /api/v1/files/search (for searching files)
-    const documentsUrl = 'https://api.digilocker.gov.in/api/v1/files/list';
+    // Use public oauth2 files endpoint per DigiLocker spec
+    const documentsUrl = process.env.NODE_ENV === 'production'
+      ? 'https://digilocker.gov.in/public/oauth2/1/files'
+      : 'https://sandbox.digilocker.gov.in/public/oauth2/1/files';
 
     console.log('Fetching documents from DigiLocker:', {
       documentsUrl,
