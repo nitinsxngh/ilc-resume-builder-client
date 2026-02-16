@@ -314,6 +314,17 @@ class VerificationService {
           error: 'Failed to obtain access token'
         };
       }
+      
+      // Persist access token for subsequent DigiLocker document fetches
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.setItem('meripahachan_access_token', tokenResponse.access_token);
+          sessionStorage.setItem('digilocker_access_token', tokenResponse.access_token);
+          console.log('Stored DigiLocker access token in sessionStorage');
+        } catch (storageError) {
+          console.error('Error storing access token:', storageError);
+        }
+      }
 
       // For OpenID Connect, user info is in id_token JWT (per MeriPehchaan API spec v2.3)
       // For regular OAuth, we need to call userinfo endpoint
