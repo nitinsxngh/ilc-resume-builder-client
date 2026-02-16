@@ -45,11 +45,10 @@ export default async function handler(
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Documents fetch failed:', response.status, errorText);
-      
-      // Return empty array if API fails (will use fallback certificates)
-      return res.status(200).json({ 
-        documents: [],
-        message: 'Using default certificate list'
+
+      return res.status(response.status).json({ 
+        error: 'Documents fetch failed',
+        details: errorText
       });
     }
 
@@ -87,11 +86,9 @@ export default async function handler(
     res.status(200).json({ documents });
   } catch (error: any) {
     console.error('Error in documents API:', error);
-    // Return empty array on error (will use fallback certificates)
-    res.status(200).json({ 
-      documents: [],
-      message: 'Using default certificate list',
-      error: error.message 
+    res.status(500).json({ 
+      error: 'Documents fetch failed',
+      details: error.message 
     });
   }
 }

@@ -173,6 +173,34 @@ export default function CallbackPage() {
           }
         };
 
+        const fetchDigiLockerDocuments = async () => {
+          try {
+            if (typeof window === 'undefined') return;
+            const accessToken = sessionStorage.getItem('digilocker_access_token') ||
+                                sessionStorage.getItem('meripahachan_access_token') ||
+                                (window as any).__digilockerToken__ ||
+                                null;
+            if (!accessToken) {
+              console.warn('No DigiLocker access token available for documents fetch');
+              return;
+            }
+            const response = await fetch('/api/digilocker/documents', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ accessToken })
+            });
+            if (!response.ok) {
+              const errorBody = await response.json().catch(async () => ({ details: await response.text() }));
+              console.error('DigiLocker documents fetch failed after callback:', errorBody);
+              return;
+            }
+            const docs = await response.json();
+            console.log('DigiLocker documents fetched after callback:', docs);
+          } catch (error) {
+            console.error('Error fetching DigiLocker documents after callback:', error);
+          }
+        };
+
         if (result.success && result.data) {
           const verificationData = result.data;
           setStatus('success');
@@ -186,6 +214,9 @@ export default function CallbackPage() {
           
           // Save verification data to backend (non-blocking - don't wait for it)
           saveRawData();
+
+          // Fetch DigiLocker documents immediately after callback (non-blocking)
+          fetchDigiLockerDocuments();
           
           // Redirect to editor immediately (reduced delay for better UX)
           setTimeout(() => {
