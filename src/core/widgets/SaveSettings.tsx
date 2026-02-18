@@ -19,6 +19,10 @@ import { useAuth } from 'src/contexts/AuthContext';
 const IconWrapper = styled.div`
   outline-color: transparent;
   margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 
   @keyframes spin {
     0% { transform: rotate(0deg); }
@@ -40,6 +44,15 @@ const IconButton = styled.button`
   border-radius: 2px;
   padding: 0;
   color: rgb(230, 230, 230);
+`;
+
+const IconLabel = styled.span`
+  font-size: 10px;
+  line-height: 1.1;
+  color: #cfcfcf;
+  text-align: center;
+  max-width: 64px;
+  word-break: break-word;
 `;
 
 export function SaveSettings() {
@@ -243,6 +256,7 @@ export function SaveSettings() {
           )}
         </IconButton>
       </Dropdown>
+      <IconLabel>Save</IconLabel>
     </IconWrapper>
   );
 }

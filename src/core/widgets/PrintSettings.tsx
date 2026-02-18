@@ -6,6 +6,10 @@ import { getIcon } from 'src/styles/icons';
 const IconWrapper = styled.div`
   outline-color: transparent;
   margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 `;
 
 const IconButton = styled.button`
@@ -22,6 +26,15 @@ const IconButton = styled.button`
   border-radius: 2px;
   padding: 0;
   color: rgb(230, 230, 230);
+`;
+
+const IconLabel = styled.span`
+  font-size: 10px;
+  line-height: 1.1;
+  color: #cfcfcf;
+  text-align: center;
+  max-width: 64px;
+  word-break: break-word;
 `;
 
 export function PrintSettings() {
@@ -42,6 +55,7 @@ export function PrintSettings() {
   return (
     <IconWrapper>
       <IconButton onClick={globalThis?.print}>{getIcon('print')}</IconButton>
+      <IconLabel>Print</IconLabel>
     </IconWrapper>
   );
 }

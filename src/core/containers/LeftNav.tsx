@@ -110,7 +110,7 @@ export const LeftNav = () => {
     <Wrapper>
       <div>
         <LogoContainer>
-          <img src="https://www.ilc.limited/logo.svg" alt="ILC Logo" />
+          <img src="https://www.ilc.limited/images/logo/2.png" alt="ILC Logo" />
         </LogoContainer>
         <SideMenu menuList={sideBarList} onClick={clickHandler} />
       </div>

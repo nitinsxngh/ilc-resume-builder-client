@@ -13,6 +13,10 @@ const Sider = styled.nav`
 const IconWrapper = styled.div`
   outline-color: transparent;
   margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 `;
 
 const IconButton = styled.button`
@@ -35,6 +39,15 @@ const IconButton = styled.button`
   }
 `;
 
+const IconLabel = styled.span`
+  font-size: 10px;
+  line-height: 1.1;
+  color: #cfcfcf;
+  text-align: center;
+  max-width: 64px;
+  word-break: break-word;
+`;
+
 const LanguageIconButton = styled(IconButton)`
   svg {
     stroke: #000000 !important;
@@ -52,6 +65,7 @@ export const SideMenu = ({ children, menuList, onClick }: any) => (
           <Tooltip placement="left" title={item.title}>
             <ButtonComponent data-title={item.title}>{getIcon(`${item.icon}`)}</ButtonComponent>
           </Tooltip>
+          <IconLabel>{item.title}</IconLabel>
         </IconWrapper>
       );
     })}

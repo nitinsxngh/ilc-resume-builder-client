@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { Resume } from 'src/core/containers/Resume';
 import { Sidebar } from 'src/core/containers/Sidebar';
 import { LeftNav } from 'src/core/containers/LeftNav';
-import { AIChat } from '../components/AIChat';
+// import { AIChat } from '../components/AIChat';
 
 import { FlexHC } from 'src/styles/styles';
 import ProtectedRoute from '../components/ProtectedRoute';
@@ -274,7 +274,7 @@ const Editor: NextPage = () => {
         
         <LoaderContent>
           <BlockchainLogo>
-            <LogoImage src="https://www.ilc.limited/logo.svg" alt="ILC Logo" />
+            <LogoImage src="https://www.ilc.limited/images/logo/2.png" alt="ILC Logo" />
           </BlockchainLogo>
           <LoadingText>Building Your Blockchain Resume</LoadingText>
           <LoadingSubtext>
@@ -317,7 +317,7 @@ const Editor: NextPage = () => {
 
         <LeftNav />
         <Resume />
-        <AIChat />
+        {/* <AIChat /> */}
         <Sidebar />
 
 

@@ -51,10 +51,23 @@ const IconWrapper = styled.div`
   margin-bottom: 1rem;
   cursor: pointer;
   transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 
   &:hover {
     transform: scale(1.05);
   }
+`;
+
+const IconLabel = styled.span`
+  font-size: 10px;
+  line-height: 1.1;
+  color: #cfcfcf;
+  text-align: center;
+  max-width: 64px;
+  word-break: break-word;
 `;
 
 const IconButton = styled.button`
@@ -160,22 +173,28 @@ export const Sidebar = () => {
       <SideMenu menuList={sideBarList} onClick={clickHandler}>
         <IconWrapper onClick={zoomout}>
           <IconButton>{getIcon('zoomout')}</IconButton>
+          <IconLabel>Zoom out</IconLabel>
         </IconWrapper>
 
         <IconWrapper onClick={zoomin}>
           <IconButton>{getIcon('zoomin')}</IconButton>
+          <IconLabel>Zoom in</IconLabel>
         </IconWrapper>
 
         <IconWrapper onClick={reset}>
           <IconButton>{getIcon('reset')}</IconButton>
+          <IconLabel>Reset</IconLabel>
         </IconWrapper>
 
         <UploadSettings />
         <SaveSettings />
         <PrintSettings />
-        <LogoutButton onClick={logout}>
-          {getIcon('logout')}
-        </LogoutButton>
+        <IconWrapper>
+          <LogoutButton onClick={logout}>
+            {getIcon('logout')}
+          </LogoutButton>
+          <IconLabel>Logout</IconLabel>
+        </IconWrapper>
       </SideMenu>
     </Wrapper>
   );

@@ -32,13 +32,13 @@ export default async function handler(
     const fetchWithRetry = async (attempts: number) => {
       let lastErrorText = '';
       for (let attempt = 1; attempt <= attempts; attempt += 1) {
-        const response = await fetch(documentsUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/json'
-          }
-        });
+    const response = await fetch(documentsUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json'
+      }
+    });
 
         if (response.ok) {
           return { response };
@@ -46,7 +46,7 @@ export default async function handler(
 
         lastErrorText = await response.text();
         console.error('Documents fetch failed:', response.status, lastErrorText);
-
+      
         // Retry only on transient upstream errors
         if (![502, 503, 504].includes(response.status) || attempt === attempts) {
           return { response, errorText: lastErrorText };

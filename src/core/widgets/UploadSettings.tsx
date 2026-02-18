@@ -16,6 +16,10 @@ import Form from 'antd/lib/form';
 const IconWrapper = styled.div`
   outline-color: transparent;
   margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 `;
 
 const IconButton = styled.button`
@@ -33,6 +37,15 @@ const IconButton = styled.button`
   padding: 0;
   color: rgb(230, 230, 230);
   font-size: 1.4rem;
+`;
+
+const IconLabel = styled.span`
+  font-size: 10px;
+  line-height: 1.1;
+  color: #cfcfcf;
+  text-align: center;
+  max-width: 64px;
+  word-break: break-word;
 `;
 
 export function UploadSettings() {
@@ -70,6 +83,7 @@ export function UploadSettings() {
       <Upload {...props}>
         <IconButton>{getIcon('upload')}</IconButton>
       </Upload>
+      <IconLabel>Upload</IconLabel>
     </IconWrapper>
   );
 }

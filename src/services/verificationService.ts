@@ -25,6 +25,14 @@ export interface VerificationResponse {
   message?: string;
 }
 
+export interface IssuedDocumentsResponse {
+  success: boolean;
+  documents?: any[];
+  raw?: any;
+  error?: string;
+  message?: string;
+}
+
 export interface DigiLockerConfig {
   clientId: string;
   clientSecret: string;
@@ -487,6 +495,157 @@ class VerificationService {
   }
 
   /**
+   * Start issued documents-only auth flow (separate from userdetails)
+   */
+  async startIssuedDocumentsFlow(): Promise<IssuedDocumentsResponse> {
+    try {
+      if (!this.meriPahachanConfig) {
+        this.initializeConfigs();
+      }
+
+      if (!this.meriPahachanConfig?.clientId) {
+        return {
+          success: false,
+          error: 'MeriPahachan configuration not available. Please check your environment variables.'
+        };
+      }
+
+      const authData = await this.getMeriPahachanDocumentsAuthUrl();
+
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('verification_state', 'meripahachan_documents');
+        console.log('Redirecting to MeriPehchaan for issued documents:', authData.url);
+        window.location.href = authData.url;
+        return {
+          success: false,
+          message: 'Redirecting to MeriPahachan for issued documents'
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Redirecting to MeriPahachan for issued documents'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: `Issued documents auth failed: ${error.message || error}`
+      };
+    }
+  }
+
+  /**
+   * Handle callback for issued documents flow and fetch documents
+   */
+  async handleMeriPahachanDocumentsCallback(code: string, state: string): Promise<IssuedDocumentsResponse> {
+    try {
+      if (!this.meriPahachanConfig) {
+        return {
+          success: false,
+          error: 'MeriPahachan configuration not available'
+        };
+      }
+
+      if (typeof window !== 'undefined') {
+        const storedState = sessionStorage.getItem('oauth_state_documents');
+        if (storedState && state !== storedState) {
+          return {
+            success: false,
+            error: 'Invalid state parameter'
+          };
+        }
+      }
+
+      const tokenResponse = await this.exchangeCodeForTokenWithVerifierKey(code, 'pkce_code_verifier_documents');
+      if (!tokenResponse.access_token) {
+        return {
+          success: false,
+          error: 'Failed to obtain access token for issued documents'
+        };
+      }
+
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('digilocker_documents_access_token', tokenResponse.access_token);
+        sessionStorage.removeItem('pkce_code_verifier_documents');
+        sessionStorage.removeItem('oauth_state_documents');
+        sessionStorage.removeItem('verification_state');
+      }
+
+      const response = await fetch('/api/digilocker/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: tokenResponse.access_token })
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(async () => ({ details: await response.text() }));
+        return {
+          success: false,
+          error: errorBody?.details || errorBody?.error || 'Failed to fetch issued documents',
+          raw: errorBody
+        };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        documents: data.documents || [],
+        raw: data
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: `Issued documents callback failed: ${error.message || error}`
+      };
+    }
+  }
+
+  /**
+   * Fetch issued documents using stored documents token (if available)
+   */
+  async fetchIssuedDocuments(): Promise<IssuedDocumentsResponse> {
+    try {
+      const accessToken = typeof window !== 'undefined'
+        ? (sessionStorage.getItem('digilocker_documents_access_token') || null)
+        : null;
+
+      if (!accessToken) {
+        return {
+          success: false,
+          error: 'No issued documents access token found'
+        };
+      }
+
+      const response = await fetch('/api/digilocker/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken })
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(async () => ({ details: await response.text() }));
+        return {
+          success: false,
+          error: errorBody?.details || errorBody?.error || 'Failed to fetch issued documents',
+          raw: errorBody
+        };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        documents: data.documents || [],
+        raw: data
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: `Failed to fetch issued documents: ${error.message || error}`
+      };
+    }
+  }
+
+  /**
    * Generate PKCE code verifier and challenge
    */
   private async generatePKCE(): Promise<{ codeVerifier: string; codeChallenge: string }> {
@@ -606,10 +765,52 @@ class VerificationService {
   }
 
   /**
+   * Get MeriPahachan authorization URL for issued documents with separate PKCE storage
+   */
+  private async getMeriPahachanDocumentsAuthUrl(): Promise<{ url: string; codeVerifier: string }> {
+    if (!this.meriPahachanConfig) {
+      throw new Error('MeriPahachan configuration not available');
+    }
+
+    const { codeVerifier, codeChallenge } = await this.generatePKCE();
+    const scopes = ['issued_documents'].join(' ');
+    const state = Math.random().toString(36).substring(7);
+
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('oauth_state_documents', state);
+      sessionStorage.setItem('pkce_code_verifier_documents', codeVerifier);
+    }
+
+    if (!this.meriPahachanConfig.redirectUri) {
+      throw new Error('Redirect URI is required. Please set NEXT_PUBLIC_MERIPAHACHAN_REDIRECT_URI environment variable.');
+    }
+
+    const params = new URLSearchParams();
+    params.append('response_type', 'code');
+    params.append('client_id', this.meriPahachanConfig.clientId);
+    params.append('redirect_uri', this.meriPahachanConfig.redirectUri);
+    params.append('scope', scopes);
+    params.append('state', state);
+    params.append('code_challenge', codeChallenge);
+    params.append('code_challenge_method', 'S256');
+    params.append('acr', 'aadhaar');
+
+    const authUrl = `${this.meriPahachanConfig.authUrl}?${params.toString()}`;
+    return { url: authUrl, codeVerifier };
+  }
+
+  /**
    * Exchange authorization code for access token with PKCE
    * Uses server-side API route to avoid CORS issues
    */
   private async exchangeCodeForToken(code: string): Promise<any> {
+    return this.exchangeCodeForTokenWithVerifierKey(code, 'pkce_code_verifier');
+  }
+
+  /**
+   * Exchange authorization code using a specific PKCE verifier storage key
+   */
+  private async exchangeCodeForTokenWithVerifierKey(code: string, verifierKey: string): Promise<any> {
     if (!this.meriPahachanConfig) {
       throw new Error('MeriPahachan configuration not available');
     }
@@ -617,7 +818,7 @@ class VerificationService {
     // Get code_verifier from sessionStorage
     let codeVerifier: string | null = null;
     if (typeof window !== 'undefined') {
-      codeVerifier = sessionStorage.getItem('pkce_code_verifier');
+      codeVerifier = sessionStorage.getItem(verifierKey);
     }
 
     if (!codeVerifier) {
@@ -651,7 +852,7 @@ class VerificationService {
     
     // Clear code_verifier after use
     if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('pkce_code_verifier');
+      sessionStorage.removeItem(verifierKey);
     }
 
     return tokenData;
